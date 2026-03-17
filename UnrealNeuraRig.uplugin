@@ -1,0 +1,23 @@
+﻿{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "UnrealNeuraRig",
+	"Description": "Neural Motion Matching and procedural animation",
+	"Category": "Other",
+	"CreatedBy": "Rafael Valoto",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": true,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "UnrealNeuraRig",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
