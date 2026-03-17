@@ -1,0 +1,18 @@
+﻿# Unreal Engine 5 Plugin Ignore
+Binaries/
+Intermediate/
+DerivedDataCache/
+Saved/
+Build/
+.vs/
+.idea/
+*.sln
+*.suo
+*.user
+*.pdb
+*.obj
+*.exe
+*.dll
+*.lib
+*.exp
+*.log
