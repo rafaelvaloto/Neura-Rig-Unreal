@@ -39,7 +39,10 @@ void UNRComponent::BeginPlay()
 	// Initialize sockets
 	UNRNetwork::InitSocket();
 	
-	LastTime = 0.0f;
+	SpacingR = 0.05;
+	SpacingL = 0.05;
+	
+	UE_LOG(LogTemp, Warning, TEXT("Spacing R: %f, Spacing L: %f"), SpacingR, SpacingL);
 
 	const FVector ThighR_Pos = CharacterMesh->GetSocketLocation("thigh_r");
 	const FVector CalfR_Pos = CharacterMesh->GetSocketLocation("calf_r");
@@ -96,18 +99,20 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 	};
 	
 	const float SpeedCmS = Actor->GetVelocity().Size();
-	const float Velocity01 = FMath::Clamp(SpeedCmS / 600.f, 0.6f, 1.f);
+	const float Velocity01 = FMath::Clamp(SpeedCmS / 600.f, 0.3f, 1.f);
 	Push1(Velocity01);
 
 	// JSON Offsets: []
 	Push1(L1_R); // mse
 	Push1(L2_R);
 	Push1(0.0); // offset
+	Push1(-SpacingR); // spacing
 
 	// JSON Offsets: []
 	Push1(L1_L); // mse
 	Push1(L2_L);
 	Push1(0.5); // offset
+	Push1(SpacingL); // spacing
 	
 	Push1(DeltaTime);
 	Push1(0.0); // reserved
@@ -127,41 +132,47 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 		dPacketRecive.Reset();
 		UNRNetwork::ReciveDataIKDebug(dPacketRecive);
 	
-		float Offset = 0.55f;
-		float R_Scale = 45.0f;
+		float Offset = 0.45f;
+		float Amplitude2 = 120.0f;
 		float Amplitude = 100.0f;
-		if (dPacketRecive.Num() == 8)
+		if (dPacketRecive.Num() == 10)
 		{
-			float dX1 = (dPacketRecive[0].X - Offset) * Amplitude;
-			float dZ1 = (dPacketRecive[0].Z * Amplitude);
-			float dX2 = (dPacketRecive[2].X - Offset) * Amplitude;
-			float dZ2 = (dPacketRecive[2].Z * Amplitude);
+			float dX1 = (dPacketRecive[0].X - Offset) * Amplitude2;
+			float dY1 = (dPacketRecive[0].Y) * Amplitude;
+			float dZ1 = (dPacketRecive[0].Z * Amplitude2);
+			float dX2 = (dPacketRecive[2].X - Offset) * Amplitude2;
+			float dY2 = (dPacketRecive[2].Y) * Amplitude;
+			float dZ2 = (dPacketRecive[2].Z * Amplitude2);
 			
-			FVector dLocalPosR = FVector(dX1, 0.0, dZ1);
-			FVector dLocalPosL = FVector(dX2, 0.0, dZ2);
-			
-			// Foot rotate
-			OutFootR_Rot = FRotator((dPacketRecive[1].X) * R_Scale, 0.0f, 0.0f);
-			OutFootL_Rot = FRotator((dPacketRecive[3].X) * R_Scale, 0.0f, 0.0f);
-			
-			// Ball rotate
-			OutBallR_Rot = FRotator((dPacketRecive[5].X - 0.90f) * Amplitude, 0.0f, 0.0f);
-			OutBallL_Rot = FRotator(-(dPacketRecive[7].X - 0.90f) * Amplitude, 0.0f, 0.0f);
+			FVector dLocalPosR = FVector(dX1, -dY1, dZ1);
+			FVector dLocalPosL = FVector(dX2, dY2, dZ2);
 			
 			// Foot position
 			OutFootR_Pos = -dLocalPosR;
 			OutFootL_Pos = dLocalPosL;
 			
+			// Foot rotate
+			OutFootR_Rot = FRotator(FMath::Clamp((dPacketRecive[1].X - 0.40f) * Amplitude, 0.0f, 30.0f), 0.0f, 0.0f);
+			OutFootL_Rot = FRotator(FMath::Clamp((dPacketRecive[3].X - 0.40f) * Amplitude, 0.0f, 30.0f), 0.0f, 0.0f);
+			
+			// Ball rotate
+			OutBallR_Rot = FRotator(FMath::Clamp((dPacketRecive[5].X - 0.90f) * Amplitude, -45.0, 45.0), 0.0f, 0.0f);
+			OutBallL_Rot = FRotator(FMath::Clamp(-(dPacketRecive[7].X - 0.90f) * Amplitude, -45.0, 45.0), 0.0f, 0.0f);
+			
+			// Pelvis
+			OutPelvis_Pos = dPacketRecive[8];
+			OutPelvis_Rot = FRotator(dPacketRecive[9].X, dPacketRecive[9].Y, dPacketRecive[9].Z);
+			
 			FVector DebugWorldR = GetOwner()->GetActorTransform().TransformPosition(dLocalPosR);
 			FVector DebugWorldL = GetOwner()->GetActorTransform().TransformPosition(dLocalPosL);
 			
-			DebugWorldR.Y = CharacterMesh->GetBoneLocation("foot_r").Y;
-			DebugWorldR.Z -= 89.0f;
-			DebugWorldL.Y = CharacterMesh->GetBoneLocation("foot_l").Y;
-			DebugWorldL.Z -= 89.0f;
+			 DebugWorldR.Y = CharacterMesh->GetBoneLocation("foot_r").Y;
+			 DebugWorldR.Z -= 89.0f;
+			 DebugWorldL.Y = CharacterMesh->GetBoneLocation("foot_l").Y;
+			 DebugWorldL.Z -= 89.0f;
 			
-			DrawDebugSphere(GetWorld(), DebugWorldR, 5.0f, 8, FColor::Yellow, false, 0.1f);
-			DrawDebugSphere(GetWorld(), DebugWorldL, 5.0f, 8, FColor::Red, false, 0.1f);
+			DrawDebugSphere(GetWorld(), DebugWorldR, 2.0f, 8, FColor::Yellow, false, 0.05f);
+			DrawDebugSphere(GetWorld(), DebugWorldL, 2.0f, 8, FColor::Red, false, 0.05f);
 		}
 		
 		// TArray<FVector> PacketRecive;

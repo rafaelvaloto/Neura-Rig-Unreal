@@ -25,6 +25,12 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Pelvis Pos")
+	FVector OutPelvis_Pos;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Pelvis Rot")
+	FRotator OutPelvis_Rot;
+	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig FootR Pos")
 	FVector OutFootR_Pos;
 	
@@ -51,6 +57,9 @@ protected:
 	float L2_L;
 	float LastTime;
 
+	float SpacingR;
+	float SpacingL;
+	
 	FVector AxisR;
 	FVector AxisL;
 	FVector LastFootPosR;
