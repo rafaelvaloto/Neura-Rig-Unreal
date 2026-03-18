@@ -36,6 +36,12 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig FootL Rot")
 	FRotator OutFootL_Rot;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig BallR Rot")
+	FRotator OutBallR_Rot = FRotator(0.0f, 0.0f, 0.0f);
+	
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig BallL Rot")
+	FRotator OutBallL_Rot = FRotator(0.0f, 0.0f, 0.0f);
 
 
 protected:

@@ -128,9 +128,9 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 		UNRNetwork::ReciveDataIKDebug(dPacketRecive);
 	
 		float Offset = 0.55f;
-		float R_Scale = 30.0f;
+		float R_Scale = 45.0f;
 		float Amplitude = 100.0f;
-		if (dPacketRecive.Num() == 4)
+		if (dPacketRecive.Num() == 8)
 		{
 			float dX1 = (dPacketRecive[0].X - Offset) * Amplitude;
 			float dZ1 = (dPacketRecive[0].Z * Amplitude);
@@ -140,15 +140,17 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 			FVector dLocalPosR = FVector(dX1, 0.0, dZ1);
 			FVector dLocalPosL = FVector(dX2, 0.0, dZ2);
 			
+			// Foot rotate
 			OutFootR_Rot = FRotator((dPacketRecive[1].X) * R_Scale, 0.0f, 0.0f);
 			OutFootL_Rot = FRotator((dPacketRecive[3].X) * R_Scale, 0.0f, 0.0f);
 			
+			// Ball rotate
+			OutBallR_Rot = FRotator((dPacketRecive[5].X - 0.90f) * Amplitude, 0.0f, 0.0f);
+			OutBallL_Rot = FRotator(-(dPacketRecive[7].X - 0.90f) * Amplitude, 0.0f, 0.0f);
+			
+			// Foot position
 			OutFootR_Pos = -dLocalPosR;
 			OutFootL_Pos = dLocalPosL;
-			
-			//
-			// UE_LOG(LogTemp, Warning, TEXT("OutFootR_Rot: %s"), *OutFootR_Rot.ToString());
-			// UE_LOG(LogTemp, Warning, TEXT("OutFootL_Rot: %s"), *OutFootL_Rot.ToString());
 			
 			FVector DebugWorldR = GetOwner()->GetActorTransform().TransformPosition(dLocalPosR);
 			FVector DebugWorldL = GetOwner()->GetActorTransform().TransformPosition(dLocalPosL);
