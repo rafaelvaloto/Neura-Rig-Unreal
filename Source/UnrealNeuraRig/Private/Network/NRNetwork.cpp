@@ -120,8 +120,8 @@ bool UNRNetwork::ReciveDataIK(TArray<FVector>& OutVectors)
 	const float* PredData = reinterpret_cast<const float*>(&ReceiveBuffer[1]);
 
 	TArray<FVector> Vs;
-	Vs.Reserve(4);
-	for (int32 j = 0; j < 4; j++)
+	Vs.Reserve(10);
+	for (int32 j = 0; j < 10; j++)
 	{
 		int32 id = j * 3;
 

@@ -25,6 +25,15 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI Debug")
+	class UTextRenderComponent* AIDebugText;
+
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Status")
+	int32 ConvergenceFrame = 0;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Status")
+	bool bHasConverged = false;
+	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Pelvis Pos")
 	FVector OutPelvis_Pos;
 	
@@ -44,11 +53,10 @@ public:
 	FRotator OutFootL_Rot;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig BallR Rot")
-	FRotator OutBallR_Rot = FRotator(0.0f, 0.0f, 0.0f);
+	FRotator OutBallR_Rot;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig BallL Rot")
-	FRotator OutBallL_Rot = FRotator(0.0f, 0.0f, 0.0f);
-
+	FRotator OutBallL_Rot;
 
 protected:
 	float L1_R; // femur R
@@ -59,6 +67,8 @@ protected:
 
 	float SpacingR;
 	float SpacingL;
+	
+	int32 frameCounter = 0;
 	
 	FVector AxisR;
 	FVector AxisL;

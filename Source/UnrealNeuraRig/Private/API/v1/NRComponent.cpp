@@ -5,8 +5,8 @@
 #include "API/v1/NRComponent.h"
 
 #include "GameFramework/Character.h"
+#include "Kismet/GameplayStatics.h"
 #include "Network/NRNetwork.h"
-#include <cmath>
 
 
 // Sets default values for this component's properties
@@ -22,6 +22,9 @@ UNRComponent::UNRComponent()
 void UNRComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	frameCounter = 0;
+	ConvergenceFrame = 0;
 	
 	AActor* Actor = GetOwner();
 	USkeletalMeshComponent* CharacterMesh = nullptr;
@@ -98,6 +101,14 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 		Raw.Add(A);
 	};
 	
+	
+	if (ConvergenceFrame == 0)
+	{
+		frameCounter++;
+	}
+	
+	float CurrentDilation = UGameplayStatics::GetGlobalTimeDilation(GetWorld());
+	
 	const float SpeedCmS = Actor->GetVelocity().Size();
 	const float Velocity01 = FMath::Clamp(SpeedCmS / 600.f, 0.3f, 1.f);
 	Push1(Velocity01);
@@ -115,7 +126,9 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 	Push1(SpacingL); // spacing
 	
 	Push1(DeltaTime);
+	Push1(CurrentDilation);
 	Push1(0.0); // reserved
+		
 	
 	if (Raw.Num() > 0)
 	{
@@ -127,14 +140,14 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 
 		FMemory::Memcpy(Packet.GetData() + 1, Raw.GetData(), DataSize);
 		UNRNetwork::SendDataIK(Packet.GetData(), Packet.Num());
-		
-		TArray<FVector> dPacketRecive;
-		dPacketRecive.Reset();
-		UNRNetwork::ReciveDataIKDebug(dPacketRecive);
 	
 		float Offset = 0.45f;
 		float Amplitude2 = 120.0f;
 		float Amplitude = 100.0f;
+		
+		TArray<FVector> dPacketRecive;
+		dPacketRecive.Reset();
+		UNRNetwork::ReciveDataIKDebug(dPacketRecive);
 		if (dPacketRecive.Num() == 10)
 		{
 			float dX1 = (dPacketRecive[0].X - Offset) * Amplitude2;
@@ -147,61 +160,87 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 			FVector dLocalPosR = FVector(dX1, -dY1, dZ1);
 			FVector dLocalPosL = FVector(dX2, dY2, dZ2);
 			
-			// Foot position
-			OutFootR_Pos = -dLocalPosR;
-			OutFootL_Pos = dLocalPosL;
-			
-			// Foot rotate
-			OutFootR_Rot = FRotator(FMath::Clamp((dPacketRecive[1].X - 0.40f) * Amplitude, 0.0f, 30.0f), 0.0f, 0.0f);
-			OutFootL_Rot = FRotator(FMath::Clamp((dPacketRecive[3].X - 0.40f) * Amplitude, 0.0f, 30.0f), 0.0f, 0.0f);
-			
-			// Ball rotate
-			OutBallR_Rot = FRotator(FMath::Clamp((dPacketRecive[5].X - 0.90f) * Amplitude, -45.0, 45.0), 0.0f, 0.0f);
-			OutBallL_Rot = FRotator(FMath::Clamp(-(dPacketRecive[7].X - 0.90f) * Amplitude, -45.0, 45.0), 0.0f, 0.0f);
-			
-			// Pelvis
-			OutPelvis_Pos = dPacketRecive[8];
-			OutPelvis_Rot = FRotator(dPacketRecive[9].X, dPacketRecive[9].Y, dPacketRecive[9].Z);
+			// // Foot position
+			// OutFootR_Pos = -dLocalPosR;
+			// OutFootL_Pos = dLocalPosL;
+			//
+			// // Foot rotate
+			// OutFootR_Rot = FRotator(FMath::Clamp((dPacketRecive[1].X - 0.40f) * Amplitude, 0.0f, 30.0f), 0.0f, 0.0f);
+			// OutFootL_Rot = FRotator(FMath::Clamp((dPacketRecive[3].X - 0.40f) * Amplitude, 0.0f, 30.0f), 0.0f, 0.0f);
+			//
+			// // Ball rotate
+			// OutBallR_Rot = FRotator(FMath::Clamp((dPacketRecive[5].X - 0.90f) * Amplitude, -45.0, 45.0), 0.0f, 0.0f);
+			// OutBallL_Rot = FRotator(FMath::Clamp(-(dPacketRecive[7].X - 0.90f) * Amplitude, -45.0, 45.0), 0.0f, 0.0f);
+			//
+			// // Pelvis
+			// OutPelvis_Pos = dPacketRecive[8] * 2.0;
+			// OutPelvis_Rot = FRotator(dPacketRecive[9].X * 1.0, dPacketRecive[9].Y * 1.0, dPacketRecive[9].Z * 1.0);
 			
 			FVector DebugWorldR = GetOwner()->GetActorTransform().TransformPosition(dLocalPosR);
 			FVector DebugWorldL = GetOwner()->GetActorTransform().TransformPosition(dLocalPosL);
 			
-			 DebugWorldR.Y = CharacterMesh->GetBoneLocation("foot_r").Y;
-			 DebugWorldR.Z -= 89.0f;
-			 DebugWorldL.Y = CharacterMesh->GetBoneLocation("foot_l").Y;
-			 DebugWorldL.Z -= 89.0f;
+			DebugWorldR.Y = CharacterMesh->GetBoneLocation("foot_r").Y;
+			DebugWorldR.Z -= 89.0f;
+			DebugWorldL.Y = CharacterMesh->GetBoneLocation("foot_l").Y;
+			DebugWorldL.Z -= 89.0f;
 			
 			DrawDebugSphere(GetWorld(), DebugWorldR, 2.0f, 8, FColor::Yellow, false, 0.05f);
 			DrawDebugSphere(GetWorld(), DebugWorldL, 2.0f, 8, FColor::Red, false, 0.05f);
 		}
 		
-		// TArray<FVector> PacketRecive;
-		// PacketRecive.Reset();
-		// UNRNetwork::ReciveDataIK(PacketRecive);
-		// if (dPacketRecive.Num() == 4)
-		// {
-		// 	float X1 = (dPacketRecive[0].X - Offset) * Amplitude;
-		// 	float Z1 = (dPacketRecive[0].Z * Amplitude);
-		// 	float X2 = (dPacketRecive[2].X - Offset) * Amplitude;
-		// 	float Z2 = (dPacketRecive[2].Z * Amplitude);
-		// 	
-		// 	FVector LocalPosR = FVector(X1, 0.0, Z1);
-		// 	FVector LocalPosL = FVector(X2, 0.0, Z2);
-		// 	
-		// 	OutFootR_Pos = -LocalPosR;
-		// 	OutFootL_Pos = LocalPosL;
-		// 	
-		// 	FVector WorldR = GetOwner()->GetActorTransform().TransformPosition(LocalPosR);
-		// 	FVector WorldL = GetOwner()->GetActorTransform().TransformPosition(LocalPosL);
-		// 	
-		// 	WorldR.Y = CharacterMesh->GetBoneLocation("foot_r").Y;
-		// 	WorldR.Z -= 89.0f;
-		// 	WorldR.Y = CharacterMesh->GetBoneLocation("foot_l").Y;
-		// 	WorldR.Z -= 89.0f;
-		// 	
-		// 	DrawDebugSphere(GetWorld(), WorldR, 5.0f, 8, FColor::Yellow, false, 0.1f);
-		// 	DrawDebugSphere(GetWorld(), WorldL, 5.0f, 8, FColor::Red, false, 0.1f);
-		// }
+		TArray<FVector> PacketRecive;
+		PacketRecive.Reset();
+		UNRNetwork::ReciveDataIK(PacketRecive);
+		if (PacketRecive.Num() == 10)
+		{
+			bHasConverged = true;
+			ConvergenceFrame = frameCounter;
+			
+			float X1 = (PacketRecive[0].X - Offset) * Amplitude2;
+			float Y1 = (PacketRecive[0].Y) * Amplitude;
+			float Z1 = (PacketRecive[0].Z * Amplitude2);
+			float X2 = (PacketRecive[2].X - Offset) * Amplitude2;
+			float Y2 = (PacketRecive[2].Y) * Amplitude;
+			float Z2 = (PacketRecive[2].Z * Amplitude2);
+			
+			FVector LocalPosR = FVector(X1, -Y1, Z1);
+			FVector LocalPosL = FVector(X2, Y2, Z2);
+			
+			float S_intpl = 20.0f;
+			float T_intpl = DeltaTime;
+			// Foot position
+			OutFootR_Pos = FMath::VInterpTo(OutFootR_Pos, -LocalPosR, T_intpl, S_intpl);
+			OutFootL_Pos = FMath::VInterpTo(OutFootL_Pos, LocalPosL, T_intpl, S_intpl);
+			
+			// Foot rotate
+			FRotator Fr_rot = FRotator(FMath::Clamp((PacketRecive[1].X - 0.40f) * Amplitude, 0.0f, 30.0f), 0.0f, 0.0f);
+			FRotator Fl_rot = FRotator(FMath::Clamp((PacketRecive[3].X - 0.40f) * Amplitude, 0.0f, 30.0f), 0.0f, 0.0f);
+			OutFootR_Rot = FMath::RInterpTo(OutFootR_Rot, Fr_rot, T_intpl, S_intpl);
+			OutFootL_Rot = FMath::RInterpTo(OutFootL_Rot, Fl_rot, T_intpl, S_intpl);
+			
+			// Ball rotate
+			FRotator Br_root = FRotator(FMath::Clamp((PacketRecive[5].X - 0.90f) * Amplitude, -45.0, 45.0), 0.0f, 0.0f);
+			FRotator Bl_root = FRotator(FMath::Clamp(-(PacketRecive[7].X - 0.90f) * Amplitude, -45.0, 45.0), 0.0f, 0.0f);
+			OutBallR_Rot = FMath::RInterpTo(OutBallR_Rot, Br_root, T_intpl, S_intpl);
+			OutBallL_Rot = FMath::RInterpTo(OutBallL_Rot, Bl_root, T_intpl, S_intpl);
+			
+			// Pelvis
+			FVector P_pos = PacketRecive[8] * 2.0;
+			FRotator P_rot = FRotator(PacketRecive[9].X * 1.0, PacketRecive[9].Y * 1.0, PacketRecive[9].Z * 1.0);
+			OutPelvis_Pos = FMath::VInterpTo(OutPelvis_Pos, -P_pos, T_intpl, S_intpl);
+			OutPelvis_Rot = FMath::RInterpTo(OutPelvis_Rot, P_rot, T_intpl, S_intpl);
+			
+			FVector WorldR = GetOwner()->GetActorTransform().TransformPosition(LocalPosR);
+			FVector WorldL = GetOwner()->GetActorTransform().TransformPosition(LocalPosL);
+			
+			WorldR.Y = CharacterMesh->GetBoneLocation("foot_r").Y;
+			WorldR.Z -= 89.0f;
+			WorldL.Y = CharacterMesh->GetBoneLocation("foot_l").Y;
+			WorldL.Z -= 89.0f;
+			
+			DrawDebugSphere(GetWorld(), WorldR, 5.0f, 8, FColor::White, false, 0.05f);
+			DrawDebugSphere(GetWorld(), WorldL, 5.0f, 8, FColor::White, false, 0.05f);
+		}
 	}
 }
 
