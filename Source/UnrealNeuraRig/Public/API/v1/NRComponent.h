@@ -5,6 +5,9 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Structs/NRParameters.h"
+#include "Structs/NRRigScales.h"
+
 #include "NRComponent.generated.h"
 
 
@@ -72,6 +75,12 @@ public:
 	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig BallL Rot")
 	FRotator OutBallL_Rot;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NeuraRig Scales", meta = (DisplayName = "Rig Scales", Description = "Control the scales of the neural rig."))
+	FNRRigScales RigScales;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NeuraRig Parameters", meta = (DisplayName = "Rig Parameters", Description = "Control the parameters of the neural rig."))
+	FNRParameters RigParameters;
 
 protected:
 	float L1_R; // femur R
@@ -79,14 +88,10 @@ protected:
 	float L1_L;
 	float L2_L;
 	float LastTime;
-
 	float SpacingR;
 	float SpacingL;
-	
-	int32 frameCounter = 0;
+	int32 frameCounter;
 	
 	FVector AxisR;
 	FVector AxisL;
-	FVector LastFootPosR;
-	FVector LastFootPosL;
 };

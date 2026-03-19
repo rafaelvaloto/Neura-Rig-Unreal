@@ -42,11 +42,9 @@ void UNRComponent::BeginPlay()
 	// Initialize sockets
 	UNRNetwork::InitSocket();
 	
-	SpacingR = 0.05;
-	SpacingL = 0.05;
+	SpacingR = ;
+	SpacingL = RigParameters.SpacingFootL;
 	
-	UE_LOG(LogTemp, Warning, TEXT("Spacing R: %f, Spacing L: %f"), SpacingR, SpacingL);
-
 	const FVector ThighR_Pos = CharacterMesh->GetSocketLocation("thigh_r");
 	const FVector CalfR_Pos = CharacterMesh->GetSocketLocation("calf_r");
 	const FVector FootR_Pos = CharacterMesh->GetSocketLocation("foot_r");
@@ -58,23 +56,6 @@ void UNRComponent::BeginPlay()
 	const FVector FootL_Pos = CharacterMesh->GetSocketLocation("foot_l");
 	L1_L = FVector::Dist(CalfL_Pos, ThighL_Pos) * 0.01;
 	L2_L = FVector::Dist(FootL_Pos, CalfL_Pos) * 0.01;
-
-	UE_LOG(LogTemp, Log, TEXT("L1 R: %f, L2 R: %f"), L1_R, L2_R);
-	UE_LOG(LogTemp, Log, TEXT("L1 L: %f, L2 L: %f"), L1_L, L2_L);
-
-	FVector ThighToKnee = (CalfR_Pos - ThighR_Pos).GetSafeNormal();
-	FQuat ThighRotWS = CharacterMesh->GetBoneQuaternion("thigh_r");
-
-	FVector ThighToKneeL = (CalfL_Pos - ThighL_Pos).GetSafeNormal();
-	FQuat ThighRotWSL = CharacterMesh->GetBoneQuaternion("thigh_l");
-
-	AxisR = ThighRotWS.UnrotateVector(ThighToKnee);
-	AxisL = ThighRotWSL.UnrotateVector(ThighToKneeL);
-	UE_LOG(LogTemp, Warning, TEXT("Bone axis AxisR: %s"), *AxisR.ToString());
-	UE_LOG(LogTemp, Warning, TEXT("Bone axis AxisL: %s"), *AxisL.ToString());
-
-	LastFootPosR = FVector::ZeroVector;
-	LastFootPosL = FVector::ZeroVector;
 }
 
 // Called every frame
@@ -101,7 +82,6 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 		Raw.Add(A);
 	};
 	
-	
 	if (ConvergenceFrame == 0)
 	{
 		frameCounter++;
@@ -116,14 +96,14 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 	// JSON Offsets: []
 	Push1(L1_R); // mse
 	Push1(L2_R);
-	Push1(0.0); // offset
-	Push1(-SpacingR); // spacing
+	Push1(RigParameters.OffsetFootR); // offset
+	Push1(RigParameters.SpacingFootR); // spacing
 
 	// JSON Offsets: []
 	Push1(L1_L); // mse
 	Push1(L2_L);
-	Push1(0.5); // offset
-	Push1(SpacingL); // spacing
+	Push1(RigParameters.OffsetFootL); // offset
+	Push1(RigParameters.SpacingFootL); // spacing
 	
 	Push1(DeltaTime);
 	Push1(CurrentDilation);
@@ -140,44 +120,22 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 
 		FMemory::Memcpy(Packet.GetData() + 1, Raw.GetData(), DataSize);
 		UNRNetwork::SendDataIK(Packet.GetData(), Packet.Num());
-	
-		float Offset = 0.65f;
-		float Amplitude = 100.0f;
 		
 		TArray<FVector> dPacketRecive;
 		dPacketRecive.Reset();
 		UNRNetwork::ReciveDataIKDebug(dPacketRecive);
 		if (dPacketRecive.Num() == 12)
 		{
-			float dX1 = (dPacketRecive[0].X - Offset) * Amplitude;
-			float dY1 = (dPacketRecive[0].Y) * Amplitude;
-			float dZ1 = (dPacketRecive[0].Z * Amplitude);
-			float dX2 = (dPacketRecive[2].X - Offset) * Amplitude;
-			float dY2 = (dPacketRecive[2].Y) * Amplitude;
-			float dZ2 = (dPacketRecive[2].Z * Amplitude);
+			FVector dLocalPosR = dPacketRecive[0] - FVector(RigScales.FootOffsetX, RigScales.FootOffsetY, RigScales.FootOffsetZ) * FVector(RigScales.MaxFootStrideX, RigScales.MaxFootWidthY, RigScales.MaxFootHeightZ);
+			FVector dLocalPosL = dPacketRecive[2] - FVector(RigScales.FootOffsetX, RigScales.FootOffsetY, RigScales.FootOffsetZ) * FVector(RigScales.MaxFootStrideX, RigScales.MaxFootWidthY, RigScales.MaxFootHeightZ);
+
+			dLocalPosR.X = FMath::Clamp(dLocalPosR.X, -RigScales.MaxFootStrideX, RigScales.MaxFootStrideX);
+			dLocalPosR.Y = FMath::Clamp(dLocalPosR.Y, -5.0f, RigScales.MaxFootWidthY);
+			dLocalPosR.Z = FMath::Clamp(dLocalPosR.Z, 0.0f, RigScales.MaxFootHeightZ);
 			
-			FVector dLocalPosR = FVector(dX1, -dY1, dZ1);
-			FVector dLocalPosL = FVector(dX2, dY2, dZ2);
-			
-			// FRotator dS_rot = FRotator(dPacketRecive[11].X * 1.0, dPacketRecive[11].Y * 1.0, dPacketRecive[11].Z * 1.0);
-			// UE_LOG(LogTemp, Warning, TEXT("dS_rot: %s"), *dS_rot.ToString());
-			// UE_LOG(LogTemp, Warning, TEXT("foot_r: %s"), *dPacketRecive[1].ToString());
-			
-			// // Foot position
-			// OutFootR_Pos = -dLocalPosR;
-			// OutFootL_Pos = dLocalPosL;
-			//
-			// // Foot rotate
-			// OutFootR_Rot = FRotator(FMath::Clamp((dPacketRecive[1].X - 0.40f) * Amplitude, 0.0f, 30.0f), 0.0f, 0.0f);
-			// OutFootL_Rot = FRotator(FMath::Clamp((dPacketRecive[3].X - 0.40f) * Amplitude, 0.0f, 30.0f), 0.0f, 0.0f);
-			//
-			// // Ball rotate
-			// OutBallR_Rot = FRotator(FMath::Clamp((dPacketRecive[5].X - 0.90f) * Amplitude, -45.0, 45.0), 0.0f, 0.0f);
-			// OutBallL_Rot = FRotator(FMath::Clamp(-(dPacketRecive[7].X - 0.90f) * Amplitude, -45.0, 45.0), 0.0f, 0.0f);
-			//
-			// // Pelvis
-			// OutPelvis_Pos = dPacketRecive[8] * 2.0;
-			// OutPelvis_Rot = FRotator(dPacketRecive[9].X * 1.0, dPacketRecive[9].Y * 1.0, dPacketRecive[9].Z * 1.0);
+			dLocalPosL.X = FMath::Clamp(dLocalPosL.X, -RigScales.MaxFootStrideX, RigScales.MaxFootStrideX);
+			dLocalPosL.Y = FMath::Clamp(dLocalPosL.Y, -5.0f, RigScales.MaxFootWidthY);
+			dLocalPosL.Z = FMath::Clamp(dLocalPosL.Z, 0.0f, RigScales.MaxFootHeightZ);
 			
 			FVector DebugWorldR = GetOwner()->GetActorTransform().TransformPosition(dLocalPosR);
 			FVector DebugWorldL = GetOwner()->GetActorTransform().TransformPosition(dLocalPosL);
@@ -199,33 +157,38 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 			bHasConverged = true;
 			ConvergenceFrame = frameCounter;
 			
-			float X1 = (PacketRecive[0].X - Offset) * Amplitude;
-			float Y1 = (PacketRecive[0].Y) * Amplitude;
-			float Z1 = (PacketRecive[0].Z * Amplitude);
-			float X2 = (PacketRecive[2].X - Offset) * Amplitude;
-			float Y2 = (PacketRecive[2].Y) * Amplitude;
-			float Z2 = (PacketRecive[2].Z * Amplitude);
 			
-			FVector LocalPosR = FVector(X1, -Y1, Z1);
-			FVector LocalPosL = FVector(X2, Y2, Z2);
+			FVector LocalPosR = PacketRecive[0] - FVector(RigScales.FootOffsetX, RigScales.FootOffsetY, RigScales.FootOffsetZ) * FVector(RigScales.MaxFootStrideX, RigScales.MaxFootWidthY, RigScales.MaxFootHeightZ);
+			FVector LocalPosL = PacketRecive[2] - FVector(RigScales.FootOffsetX, RigScales.FootOffsetY, RigScales.FootOffsetZ) * FVector(RigScales.MaxFootStrideX, RigScales.MaxFootWidthY, RigScales.MaxFootHeightZ);
+
+			LocalPosR.X = FMath::Clamp(LocalPosR.X, -RigScales.MaxFootStrideX, RigScales.MaxFootStrideX);
+			LocalPosR.Y = FMath::Clamp(LocalPosR.Y, -5.0f, RigScales.MaxFootWidthY);
+			LocalPosR.Z = FMath::Clamp(LocalPosR.Z, 0.0f, RigScales.MaxFootHeightZ);
 			
-			float S_intpl = 10.0f;
+			LocalPosL.X = FMath::Clamp(LocalPosL.X, -RigScales.MaxFootStrideX, RigScales.MaxFootStrideX);
+			LocalPosL.Y = FMath::Clamp(LocalPosL.Y, -5.0f, RigScales.MaxFootWidthY);
+			LocalPosL.Z = FMath::Clamp(LocalPosL.Z, 0.0f, RigScales.MaxFootHeightZ);
+			
+			float S_intpl = RigParameters.S_interpolation;
 			float T_intpl = DeltaTime;
+			
+			
+			
 			// Foot position
 			OutFootR_Pos = FMath::VInterpTo(OutFootR_Pos, -LocalPosR, T_intpl, S_intpl);
 			OutFootL_Pos = FMath::VInterpTo(OutFootL_Pos, LocalPosL, T_intpl, S_intpl);
 			
-			// Foot rotate
-			FRotator Fr_rot = FRotator(FMath::Clamp((PacketRecive[1].X - 0.40f) * Amplitude, 0.0f, 30.0f), 0.0f, 0.0f);
-			FRotator Fl_rot = FRotator(FMath::Clamp((PacketRecive[3].X - 0.40f) * Amplitude, 0.0f, 30.0f), 0.0f, 0.0f);
-			OutFootR_Rot = FMath::RInterpTo(OutFootR_Rot, Fr_rot, T_intpl, S_intpl);
-			OutFootL_Rot = FMath::RInterpTo(OutFootL_Rot, Fl_rot, T_intpl, S_intpl);
-			
-			// Ball rotate
-			FRotator Br_root = FRotator(FMath::Clamp((PacketRecive[5].X - 0.90f) * Amplitude, -45.0, 45.0), 0.0f, 0.0f);
-			FRotator Bl_root = FRotator(FMath::Clamp(-(PacketRecive[7].X - 0.90f) * Amplitude, -45.0, 45.0), 0.0f, 0.0f);
-			OutBallR_Rot = FMath::RInterpTo(OutBallR_Rot, Br_root, T_intpl, S_intpl);
-			OutBallL_Rot = FMath::RInterpTo(OutBallL_Rot, Bl_root, T_intpl, S_intpl);
+			// // Foot rotate
+			// FRotator Fr_rot = FRotator(FMath::Clamp((PacketRecive[1].X - 0.40f) * Amplitude, 0.0f, 30.0f), 0.0f, 0.0f);
+			// FRotator Fl_rot = FRotator(FMath::Clamp((PacketRecive[3].X - 0.40f) * Amplitude, 0.0f, 30.0f), 0.0f, 0.0f);
+			// OutFootR_Rot = FMath::RInterpTo(OutFootR_Rot, Fr_rot, T_intpl, S_intpl);
+			// OutFootL_Rot = FMath::RInterpTo(OutFootL_Rot, Fl_rot, T_intpl, S_intpl);
+			//
+			// // Ball rotate
+			// FRotator Br_root = FRotator(FMath::Clamp((PacketRecive[5].X - 0.90f) * Amplitude, -45.0, 45.0), 0.0f, 0.0f);
+			// FRotator Bl_root = FRotator(FMath::Clamp(-(PacketRecive[7].X - 0.90f) * Amplitude, -45.0, 45.0), 0.0f, 0.0f);
+			// OutBallR_Rot = FMath::RInterpTo(OutBallR_Rot, Br_root, T_intpl, S_intpl);
+			// OutBallL_Rot = FMath::RInterpTo(OutBallL_Rot, Bl_root, T_intpl, S_intpl);
 			
 			// Pelvis
 			FVector P_pos = PacketRecive[8] * 2.0;
