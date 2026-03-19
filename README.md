@@ -8,6 +8,16 @@ Neura RIG is an Unreal Engine plugin designed for **Neural Motion Matching** and
 2. Restart the Unreal Engine editor.
 3. Enable the plugin in the **Plugins** window (Edit > Plugins).
 
+---
+
+## 📺 Development Progress
+
+![Neural IK Demo](AtGif.gif)
+
+*The AI successfully learns to optimize the stride curve, achieving fluid movement and maintaining balance through real-time weight shift predictions.*
+
+---
+
 ## Usage
 
 To use the Neura RIG component in your C++ classes, include the relevant headers and initialize the `UNRComponent`.
