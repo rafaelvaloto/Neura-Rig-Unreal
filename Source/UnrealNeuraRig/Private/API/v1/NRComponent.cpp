@@ -141,24 +141,27 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 		FMemory::Memcpy(Packet.GetData() + 1, Raw.GetData(), DataSize);
 		UNRNetwork::SendDataIK(Packet.GetData(), Packet.Num());
 	
-		float Offset = 0.45f;
-		float Amplitude2 = 120.0f;
+		float Offset = 0.65f;
 		float Amplitude = 100.0f;
 		
 		TArray<FVector> dPacketRecive;
 		dPacketRecive.Reset();
 		UNRNetwork::ReciveDataIKDebug(dPacketRecive);
-		if (dPacketRecive.Num() == 10)
+		if (dPacketRecive.Num() == 12)
 		{
-			float dX1 = (dPacketRecive[0].X - Offset) * Amplitude2;
+			float dX1 = (dPacketRecive[0].X - Offset) * Amplitude;
 			float dY1 = (dPacketRecive[0].Y) * Amplitude;
-			float dZ1 = (dPacketRecive[0].Z * Amplitude2);
-			float dX2 = (dPacketRecive[2].X - Offset) * Amplitude2;
+			float dZ1 = (dPacketRecive[0].Z * Amplitude);
+			float dX2 = (dPacketRecive[2].X - Offset) * Amplitude;
 			float dY2 = (dPacketRecive[2].Y) * Amplitude;
-			float dZ2 = (dPacketRecive[2].Z * Amplitude2);
+			float dZ2 = (dPacketRecive[2].Z * Amplitude);
 			
 			FVector dLocalPosR = FVector(dX1, -dY1, dZ1);
 			FVector dLocalPosL = FVector(dX2, dY2, dZ2);
+			
+			// FRotator dS_rot = FRotator(dPacketRecive[11].X * 1.0, dPacketRecive[11].Y * 1.0, dPacketRecive[11].Z * 1.0);
+			// UE_LOG(LogTemp, Warning, TEXT("dS_rot: %s"), *dS_rot.ToString());
+			// UE_LOG(LogTemp, Warning, TEXT("foot_r: %s"), *dPacketRecive[1].ToString());
 			
 			// // Foot position
 			// OutFootR_Pos = -dLocalPosR;
@@ -191,22 +194,22 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 		TArray<FVector> PacketRecive;
 		PacketRecive.Reset();
 		UNRNetwork::ReciveDataIK(PacketRecive);
-		if (PacketRecive.Num() == 10)
+		if (PacketRecive.Num() == 12)
 		{
 			bHasConverged = true;
 			ConvergenceFrame = frameCounter;
 			
-			float X1 = (PacketRecive[0].X - Offset) * Amplitude2;
+			float X1 = (PacketRecive[0].X - Offset) * Amplitude;
 			float Y1 = (PacketRecive[0].Y) * Amplitude;
-			float Z1 = (PacketRecive[0].Z * Amplitude2);
-			float X2 = (PacketRecive[2].X - Offset) * Amplitude2;
+			float Z1 = (PacketRecive[0].Z * Amplitude);
+			float X2 = (PacketRecive[2].X - Offset) * Amplitude;
 			float Y2 = (PacketRecive[2].Y) * Amplitude;
-			float Z2 = (PacketRecive[2].Z * Amplitude2);
+			float Z2 = (PacketRecive[2].Z * Amplitude);
 			
 			FVector LocalPosR = FVector(X1, -Y1, Z1);
 			FVector LocalPosL = FVector(X2, Y2, Z2);
 			
-			float S_intpl = 20.0f;
+			float S_intpl = 10.0f;
 			float T_intpl = DeltaTime;
 			// Foot position
 			OutFootR_Pos = FMath::VInterpTo(OutFootR_Pos, -LocalPosR, T_intpl, S_intpl);
@@ -226,9 +229,13 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 			
 			// Pelvis
 			FVector P_pos = PacketRecive[8] * 2.0;
-			FRotator P_rot = FRotator(PacketRecive[9].X * 1.0, PacketRecive[9].Y * 1.0, PacketRecive[9].Z * 1.0);
+			FRotator P_rot = FRotator(PacketRecive[9].X * 10.0, PacketRecive[9].Y * 30.0, PacketRecive[9].Z * 5.0);
 			OutPelvis_Pos = FMath::VInterpTo(OutPelvis_Pos, -P_pos, T_intpl, S_intpl);
 			OutPelvis_Rot = FMath::RInterpTo(OutPelvis_Rot, P_rot, T_intpl, S_intpl);
+			
+			// Spine
+			FRotator S_rot = FRotator(PacketRecive[11].X * 20.0, PacketRecive[11].Y * 5.0, PacketRecive[11].Z * 10.0);
+			OutSpine_Rot = FMath::RInterpTo(OutSpine_Rot, S_rot, T_intpl, S_intpl);
 			
 			FVector WorldR = GetOwner()->GetActorTransform().TransformPosition(LocalPosR);
 			FVector WorldL = GetOwner()->GetActorTransform().TransformPosition(LocalPosL);

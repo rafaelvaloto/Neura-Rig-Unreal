@@ -40,6 +40,21 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Pelvis Rot")
 	FRotator OutPelvis_Rot;
 	
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Spine Rot")
+	FRotator OutSpine_Rot;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Arm Rot")
+	FRotator OutUpperArmR_Rot;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Arm Rot")
+	FRotator OutUpperArmL_Rot;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Arm Rot")
+	FRotator OutClavicleR_Rot;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Arm Rot")
+	FRotator OutClavicleL_Rot;
+	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig FootR Pos")
 	FVector OutFootR_Pos;
 	
