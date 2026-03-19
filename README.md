@@ -50,3 +50,9 @@ Make sure your project's `.Build.cs` file includes `"UnrealNeuraRig"` in the `Pu
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 Created by Rafael Valoto.
+
+---
+
+![Neural IK Demo](Gif2.gif)
+
+![Neural IK Demo](Gif3.gif)
