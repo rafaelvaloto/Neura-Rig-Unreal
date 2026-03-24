@@ -120,8 +120,8 @@ bool UNRNetwork::ReciveDataIK(TArray<FVector>& OutVectors)
 	const float* PredData = reinterpret_cast<const float*>(&ReceiveBuffer[1]);
 
 	TArray<FVector> Vs;
-	Vs.Reserve(12);
-	for (int32 j = 0; j < 12; j++)
+	Vs.Reserve(20);
+	for (int32 j = 0; j < 20; j++)
 	{
 		int32 id = j * 3;
 
@@ -163,8 +163,8 @@ bool UNRNetwork::ReciveDataIKDebug(TArray<FVector>& OutVectors)
 	const float* PredData = reinterpret_cast<const float*>(&dReceiveBuffer[1]);
 
 	TArray<FVector> Vs;
-	Vs.Reserve(12);
-	for (int32 j = 0; j < 12; j++)
+	Vs.Reserve(20);
+	for (int32 j = 0; j < 20; j++)
 	{
 		int32 id = j * 3;
 

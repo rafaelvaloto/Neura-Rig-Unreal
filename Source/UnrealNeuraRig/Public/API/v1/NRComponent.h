@@ -76,6 +76,24 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig BallL Rot")
 	FRotator OutBallL_Rot;
 	
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig CalfR Pos")
+	FRotator OutCalfR_Pos;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig CalfL Pos")
+	FRotator OutCalfL_Pos;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig CalfR Rot")
+	FRotator OutCalfR_Rot;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig CalfL Rot")
+	FRotator OutCalfL_Rot;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig ThighR Rot")
+	FRotator OutThighR_Rot;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig ThighL Rot")
+	FRotator OutThighL_Rot;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NeuraRig Scales", meta = (DisplayName = "Rig Scales", Description = "Control the scales of the neural rig."))
 	FNRRigScales RigScales;
 	
