@@ -24,7 +24,7 @@ struct FNRRigScales
 
 	// --- FOOT IK (position in cm) ---
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Foot", meta = (DisplayName = "Foot Stride X", Description = "Control the stride forward/backward."))
-	float MaxFootStrideX = 55.0f; // Maximum stride forward/backward
+	float MaxFootStrideX = 65.0f; // Maximum stride forward/backward
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Foot", meta = (DisplayName = "Foot Width Y", Description = "Control the side leg opening."))
 	float MaxFootWidthY = 3.5f; // Side leg opening
@@ -34,7 +34,7 @@ struct FNRRigScales
 
 	// --- FOOT ROTATION (Degrees) ---
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Foot", meta = (DisplayName = "Foot Pitch", Description = "Control the toe/heel rotation."))
-	float MaxFootPitch = 45.0f; // Toe/heel rotation
+	float MaxFootPitch = 65.0f; // Toe/heel rotation
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Foot", meta = (DisplayName = "Foot Roll", Description = "Control the foot roll (inversion/eversion)."))
 	float MaxFootRoll = 5.0f; // Ankle sprain
@@ -45,7 +45,7 @@ struct FNRRigScales
 
 	// -- LegIK (Degrees) ---
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Legs", meta = (DisplayName = "Max Thigh Pitch", Description = "Rotação máxima da coxa para frente/trás em graus."))
-	float MaxThighPitch = 35.0f;
+	float MaxThighPitch = 45.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Legs", meta = (DisplayName = "Max Calf Pitch", Description = "Dobra máxima do joelho (panturrilha) para trás em graus."))
 	float MaxCalfPitch = 45.0f;
@@ -55,20 +55,20 @@ struct FNRRigScales
 	float MaxPelvisForwardX = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Pelvis", meta = (DisplayName = "Pelvis Drop Z", ToolTip = "Control the pelvic drop (squat)."))
-	float MaxPelvisDropZ = 6.0f;
+	float MaxPelvisDropZ = 2.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Pelvis", meta = (DisplayName = "Pelvis Sway Y", ToolTip = "Control the lateral balance (weight transfer)."))
-	float MaxPelvisSwayY = 4.0f;
+	float MaxPelvisSwayY = 0.5f;
 
 	// --- PELVIS (Rotation in Degrees) ---
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Pelvis", meta = (DisplayName = "Pelvis Pitch", ToolTip = "Control the forward/backward tilt of the pelvis."))
-	float MaxPelvisPitch = 4.0f;
+	float MaxPelvisPitch = 0.5f;	
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Pelvis", meta = (DisplayName = "Pelvis Yaw", ToolTip = "Control the left/right twist of the pelvis."))
-	float MaxPelvisYaw = 0.0f;
+	float MaxPelvisYaw = 0.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Pelvis", meta = (DisplayName = "Pelvis Roll", ToolTip = "Control the hip drop/tilt (contra-lateral drop)."))
-	float MaxPelvisRoll = 5.0f; // Queda natural do quadril durante a passada
+	float MaxPelvisRoll = 0.25f; // Queda natural do quadril durante a passada
 
 	// --- SPINE (Rotation in Degrees) ---
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Spine", meta = (DisplayName = "Spine Pitch", ToolTip = "Control the forward tilt of the body."))
