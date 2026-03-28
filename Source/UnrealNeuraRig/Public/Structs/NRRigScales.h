@@ -24,7 +24,7 @@ struct FNRRigScales
 
 	// --- FOOT IK (position in cm) ---
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Foot", meta = (DisplayName = "Foot Stride X", Description = "Control the stride forward/backward."))
-	float MaxFootStrideX = 65.0f; // Maximum stride forward/backward
+	float MaxFootStrideX = 55.0f; // Maximum stride forward/backward
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Foot", meta = (DisplayName = "Foot Width Y", Description = "Control the side leg opening."))
 	float MaxFootWidthY = 3.5f; // Side leg opening
@@ -34,7 +34,7 @@ struct FNRRigScales
 
 	// --- FOOT ROTATION (Degrees) ---
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Foot", meta = (DisplayName = "Foot Pitch", Description = "Control the toe/heel rotation."))
-	float MaxFootPitch = 65.0f; // Toe/heel rotation
+	float MaxFootPitch = 45.5f; // Toe/heel rotation
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Foot", meta = (DisplayName = "Foot Roll", Description = "Control the foot roll (inversion/eversion)."))
 	float MaxFootRoll = 5.0f; // Ankle sprain

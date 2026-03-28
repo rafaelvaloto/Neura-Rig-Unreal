@@ -39,7 +39,7 @@ void UNRComponent::BeginPlay()
 		return;
 	}
 
-	// Initialize sockets
+	// Initialize sockets (Already handled by Module Startup, but safe to re-init if needed)
 	UNRNetwork::InitSocket();
 
 	SpacingR = RigParameters.SpacingFootR;
@@ -56,6 +56,10 @@ void UNRComponent::BeginPlay()
 	const FVector FootL_Pos = CharacterMesh->GetSocketLocation("foot_l");
 	L1_L = FVector::Dist(CalfL_Pos, ThighL_Pos) * 0.01;
 	L2_L = FVector::Dist(FootL_Pos, CalfL_Pos) * 0.01;
+	
+	UE_LOG(LogTemp, Log, TEXT("%f : %f"), L1_R, L2_R);
+	
+	bHasConverged = false;
 }
 
 // Called every frame
@@ -76,24 +80,6 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 		return;
 	}
 	
-	TArray<FVector> dPacketRecive;
-	dPacketRecive.Reset();
-	UNRNetwork::ReciveDataIKDebug(dPacketRecive);
-	if (dPacketRecive.Num() >= 20)
-	{
-		// UpdateIK(CharacterMesh, dPacketRecive, DeltaTime);
-	}
-
-	TArray<FVector> PacketRecive;
-	PacketRecive.Reset();
-	UNRNetwork::ReciveDataIK(PacketRecive);
-	if (PacketRecive.Num() >= 20)
-	{
-		bHasConverged = true;
-		ConvergenceFrame = frameCounter;
-		UpdateIK(CharacterMesh, PacketRecive, DeltaTime);
-	}
-
 	TArray<float> Raw;
 	Raw.Reserve(256);
 	auto Push1 = [&Raw](float A) {
@@ -132,14 +118,27 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 
 	if (Raw.Num() > 0)
 	{
-		TArray<uint8> Packet;
+		TArray<float> Packet;
 		const int32 DataSize = Raw.Num() * sizeof(float);
+		UNRNetwork::SendDataIK(Raw.GetData(), DataSize);
+		
+		TArray<FVector> dPacketRecive;
+		dPacketRecive.Reset();
+		UNRNetwork::ReciveDataIKDebug(dPacketRecive);
+		if (dPacketRecive.Num() == 20 && !bHasConverged)
+		{
+			UpdateIK(CharacterMesh, dPacketRecive, DeltaTime);
+		}
 
-		Packet.AddUninitialized(DataSize + 1);
-		Packet[0] = 2;
-
-		FMemory::Memcpy(Packet.GetData() + 1, Raw.GetData(), DataSize);
-		UNRNetwork::SendDataIK(Packet.GetData(), Packet.Num());
+		TArray<FVector> PacketRecive;
+		PacketRecive.Reset();
+		UNRNetwork::ReciveDataIK(PacketRecive);
+		if (PacketRecive.Num() == 20)
+		{
+			bHasConverged = true;
+			ConvergenceFrame = frameCounter;
+			UpdateIK(CharacterMesh, PacketRecive, DeltaTime);
+		}
 	}
 }
 
@@ -148,6 +147,8 @@ void UNRComponent::UpdateIK(USkeletalMeshComponent* CharacterMesh, TArray<FVecto
 	FVector FootScale = FVector(RigScales.MaxFootStrideX, RigScales.MaxFootWidthY, RigScales.MaxFootHeightZ);
 	FVector LocalPosR = FVector(PacketRecive[0].X, PacketRecive[0].Y, PacketRecive[0].Z) * FootScale;
 	FVector LocalPosL = FVector(PacketRecive[2].X, PacketRecive[2].Y, PacketRecive[2].Z) * FootScale;
+	
+	UE_LOG(LogTemp, Log, TEXT("%f : %f"), LocalPosR.X, LocalPosR.Y);
 	
 	float S_intpl = RigParameters.S_interpolation;
 	float T_intpl = DeltaTime;
