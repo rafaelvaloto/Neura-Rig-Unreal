@@ -125,9 +125,9 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 		TArray<FVector> dPacketRecive;
 		dPacketRecive.Reset();
 		UNRNetwork::ReciveDataIKDebug(dPacketRecive);
-		if (dPacketRecive.Num() == 20 && !bHasConverged)
+		if (dPacketRecive.Num() == 20)
 		{
-			UpdateIK(CharacterMesh, dPacketRecive, DeltaTime);
+			// UpdateIK(CharacterMesh, dPacketRecive, DeltaTime);
 		}
 
 		TArray<FVector> PacketRecive;
@@ -144,18 +144,16 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 
 void UNRComponent::UpdateIK(USkeletalMeshComponent* CharacterMesh, TArray<FVector> PacketRecive, float DeltaTime)
 {
-	FVector FootScale = FVector(RigScales.MaxFootStrideX, RigScales.MaxFootWidthY, RigScales.MaxFootHeightZ);
-	FVector LocalPosR = FVector(PacketRecive[0].X, PacketRecive[0].Y, PacketRecive[0].Z) * FootScale;
-	FVector LocalPosL = FVector(PacketRecive[2].X, PacketRecive[2].Y, PacketRecive[2].Z) * FootScale;
-	
-	UE_LOG(LogTemp, Log, TEXT("%f : %f"), LocalPosR.X, LocalPosR.Y);
+	FVector FootScale = FVector(RigScales.MaxFootHeightZ,  RigScales.MaxFootStrideX, RigScales.MaxFootWidthY);
+	FVector LocalPosR = FVector(PacketRecive[0].X, -PacketRecive[0].Y, PacketRecive[0].Z) * FootScale;
+	FVector LocalPosL = FVector(PacketRecive[2].X, -PacketRecive[2].Y,  PacketRecive[2].Z) * FootScale;
 	
 	float S_intpl = RigParameters.S_interpolation;
 	float T_intpl = DeltaTime;
 	
 	// Foot position
-	OutFootR_Pos = FMath::VInterpTo(OutFootR_Pos, -LocalPosR, T_intpl, S_intpl);
-	OutFootL_Pos = FMath::VInterpTo(OutFootL_Pos, LocalPosL, T_intpl, S_intpl);
+	OutFootR_Pos = FMath::VInterpTo(OutFootR_Pos, LocalPosR, T_intpl, S_intpl);
+	OutFootL_Pos = FMath::VInterpTo(OutFootL_Pos, -LocalPosL, T_intpl, S_intpl);
 	
 	// Foot rotate
 	FRotator Fr_rot = FRotator(PacketRecive[1].X * RigScales.MaxFootPitch, 0.0f, 0.0f);
@@ -165,7 +163,7 @@ void UNRComponent::UpdateIK(USkeletalMeshComponent* CharacterMesh, TArray<FVecto
 	
 	// Ball rotate
 	float TargetPitchR = PacketRecive[5].X * RigScales.MaxBallPitch;
-	float TargetPitchL = -PacketRecive[7].X * RigScales.MaxBallPitch;
+	float TargetPitchL = PacketRecive[7].X * RigScales.MaxBallPitch;
 	FRotator Br_rot = FRotator(TargetPitchR, PacketRecive[5].Y, PacketRecive[5].Z);
 	FRotator Bl_rot = FRotator(TargetPitchL, PacketRecive[7].Y, PacketRecive[7].Z);
 	
@@ -179,8 +177,11 @@ void UNRComponent::UpdateIK(USkeletalMeshComponent* CharacterMesh, TArray<FVecto
 	float TargetThighPitchR = PacketRecive[13].X * RigScales.MaxThighPitch; // Thigh
 	float TargetThighPitchL = PacketRecive[15].X * RigScales.MaxThighPitch;
 	
-	FRotator TargetThighRotR = FRotator(TargetThighPitchR, PacketRecive[8].Y, PacketRecive[8].Z);
-	FRotator TargetThighRotL = FRotator(TargetThighPitchL, PacketRecive[10].Y, PacketRecive[10].Z);
+	FRotator TargetThighRotR = FRotator(TargetThighPitchR, PacketRecive[13].Y, PacketRecive[13].Z);
+	FRotator TargetThighRotL = FRotator(-TargetThighPitchL, PacketRecive[15].Y, PacketRecive[15].Z);
+	
+	UE_LOG(LogTemp, Log, TEXT("Thigh Pitch R: %f, Thigh Pitch L: %f"), TargetThighPitchR, TargetThighPitchL);
+	UE_LOG(LogTemp, Log, TEXT("Thigh  R: %s, Thigh  L: %s"), *TargetThighRotR.ToString(), *TargetThighRotL.ToString());
 	
 	FRotator TargetCalfRotR  = FRotator(TargetCalfPitchR, PacketRecive[9].Y, PacketRecive[9].Z);
 	FRotator TargetCalfRotL  = FRotator(TargetCalfPitchL, PacketRecive[11].Y, PacketRecive[11].Z);
@@ -212,13 +213,11 @@ void UNRComponent::UpdateIK(USkeletalMeshComponent* CharacterMesh, TArray<FVecto
 	FRotator S_rot = FRotator(PacketRecive[19].X * RigScales.MaxSpinePitch, PacketRecive[19].Y * RigScales.MaxSpineYaw, PacketRecive[19].Z * RigScales.MaxSpineRoll);
 	OutSpine_Rot = FMath::RInterpTo(OutSpine_Rot, S_rot, T_intpl, S_intpl);
 	
-	FVector WorldR = GetOwner()->GetActorTransform().TransformPosition(LocalPosR);
-	FVector WorldL = GetOwner()->GetActorTransform().TransformPosition(LocalPosL);
+	FVector WorldR = GetOwner()->GetActorTransform().TransformPosition(FVector(-OutFootR_Pos.Y, OutFootR_Pos.Z, -OutFootR_Pos.X));
+	FVector WorldL = GetOwner()->GetActorTransform().TransformPosition(FVector(OutFootL_Pos.Y, OutFootL_Pos.Z, OutFootL_Pos.X));
 	
 	WorldR.Y = CharacterMesh->GetBoneLocation("foot_r").Y;
-	WorldR.Z -= 89.0f;
 	WorldL.Y = CharacterMesh->GetBoneLocation("foot_l").Y;
-	WorldL.Z -= 89.0f;
 	
 	DrawDebugSphere(GetWorld(), WorldR, 5.0f, 8, FColor::White, false, 0.05f);
 	DrawDebugSphere(GetWorld(), WorldL, 5.0f, 8, FColor::White, false, 0.05f);

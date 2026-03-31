@@ -30,7 +30,7 @@ struct FNRRigScales
 	float MaxFootWidthY = 3.5f; // Side leg opening
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Foot", meta = (DisplayName = "Foot Height Z", Description = "Control the height of the foot when it leaves the ground."))
-	float MaxFootHeightZ = 30.0f;
+	float MaxFootHeightZ = -98.0f;
 
 	// --- FOOT ROTATION (Degrees) ---
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Foot", meta = (DisplayName = "Foot Pitch", Description = "Control the toe/heel rotation."))
@@ -62,7 +62,7 @@ struct FNRRigScales
 
 	// --- PELVIS (Rotation in Degrees) ---
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Pelvis", meta = (DisplayName = "Pelvis Pitch", ToolTip = "Control the forward/backward tilt of the pelvis."))
-	float MaxPelvisPitch = 0.5f;	
+	float MaxPelvisPitch = 0.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Pelvis", meta = (DisplayName = "Pelvis Yaw", ToolTip = "Control the left/right twist of the pelvis."))
 	float MaxPelvisYaw = 0.5f;
