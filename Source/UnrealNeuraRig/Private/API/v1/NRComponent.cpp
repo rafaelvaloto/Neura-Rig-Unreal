@@ -127,7 +127,7 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 		UNRNetwork::ReciveDataIKDebug(dPacketRecive);
 		if (dPacketRecive.Num() == 20)
 		{
-			// UpdateIK(CharacterMesh, dPacketRecive, DeltaTime);
+			//UpdateIK(CharacterMesh, dPacketRecive, DeltaTime);
 		}
 
 		TArray<FVector> PacketRecive;
@@ -145,8 +145,8 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 void UNRComponent::UpdateIK(USkeletalMeshComponent* CharacterMesh, TArray<FVector> PacketRecive, float DeltaTime)
 {
 	FVector FootScale = FVector(RigScales.MaxFootHeightZ,  RigScales.MaxFootStrideX, RigScales.MaxFootWidthY);
-	FVector LocalPosR = FVector(PacketRecive[0].X, -PacketRecive[0].Y, PacketRecive[0].Z) * FootScale;
-	FVector LocalPosL = FVector(PacketRecive[2].X, -PacketRecive[2].Y,  PacketRecive[2].Z) * FootScale;
+	FVector LocalPosR = FVector(PacketRecive[0].X, PacketRecive[0].Y, PacketRecive[0].Z) * FootScale;
+	FVector LocalPosL = FVector(PacketRecive[2].X, PacketRecive[2].Y,  PacketRecive[2].Z) * FootScale;
 	
 	float S_intpl = RigParameters.S_interpolation;
 	float T_intpl = DeltaTime;
@@ -178,10 +178,7 @@ void UNRComponent::UpdateIK(USkeletalMeshComponent* CharacterMesh, TArray<FVecto
 	float TargetThighPitchL = PacketRecive[15].X * RigScales.MaxThighPitch;
 	
 	FRotator TargetThighRotR = FRotator(TargetThighPitchR, PacketRecive[13].Y, PacketRecive[13].Z);
-	FRotator TargetThighRotL = FRotator(-TargetThighPitchL, PacketRecive[15].Y, PacketRecive[15].Z);
-	
-	UE_LOG(LogTemp, Log, TEXT("Thigh Pitch R: %f, Thigh Pitch L: %f"), TargetThighPitchR, TargetThighPitchL);
-	UE_LOG(LogTemp, Log, TEXT("Thigh  R: %s, Thigh  L: %s"), *TargetThighRotR.ToString(), *TargetThighRotL.ToString());
+	FRotator TargetThighRotL = FRotator(TargetThighPitchL, PacketRecive[15].Y, PacketRecive[15].Z);
 	
 	FRotator TargetCalfRotR  = FRotator(TargetCalfPitchR, PacketRecive[9].Y, PacketRecive[9].Z);
 	FRotator TargetCalfRotL  = FRotator(TargetCalfPitchL, PacketRecive[11].Y, PacketRecive[11].Z);
