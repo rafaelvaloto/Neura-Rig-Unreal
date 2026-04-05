@@ -1,22 +1,23 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
+﻿// Copyright (C) 2026 Rafael Valoto.
+// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 #pragma once
-
 #include "CoreMinimal.h"
-#include "Rigs/RigHierarchyDefines.h"
+
+#include "Network/NRNetworkClient.h"
+#include "Network/NRNetworkServer.h"
 
 class UNREALNEURARIG_API UNRNetwork
 {
-
 public:
-	static void SetSocket();
 	static void InitSocket();
+	static void CloseSocket();
 
-	static void SendDataIK(uint8* DataBuffer, int32 Size);
+	static void SendDataIK(const float* DataBuffer, int32 Size);
 	static bool ReciveDataIK(TArray<FVector>& OutVectors);
 	static bool ReciveDataIKDebug(TArray<FVector>& OutVectors);
 
 private:
-	static FSocket* NRSocket;
-	static FSocket* dNRSocket;
+	static NR::NRNetworkClient* Client;
+	static NR::NRNetworkServer* ServerIK;
+	static NR::NRNetworkServer* ServerDebug;
 };

@@ -16,14 +16,15 @@
 void FUnrealNeuraRigModule::StartupModule()
 {
 	UE_LOG(LogTemp, Log, TEXT("[UnrealNeuraRig] Startup Module"));
-	UNRNetwork::SetSocket();
+	UNRNetwork::InitSocket();
 }
 
 void FUnrealNeuraRigModule::ShutdownModule()
 {
 	UE_LOG(LogTemp, Log, TEXT("[UnrealNeuraRig] Shutdown Module"));
+	UNRNetwork::CloseSocket();
 }
 
 #undef LOCTEXT_NAMESPACE
 
-IMPLEMENT_MODULE(FUnrealNeuraRigModule, UnrealNeuraRig)
+IMPLEMENT_MODULE(FUnrealNeuraRigModule, UnrealNeuraRig);
