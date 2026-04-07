@@ -44,21 +44,32 @@ void UNRComponent::BeginPlay()
 
 	SpacingR = RigParameters.SpacingFootR;
 	SpacingL = RigParameters.SpacingFootL;
-
-	const FVector ThighR_Pos = CharacterMesh->GetSocketLocation("thigh_r");
-	const FVector CalfR_Pos = CharacterMesh->GetSocketLocation("calf_r");
-	const FVector FootR_Pos = CharacterMesh->GetSocketLocation("foot_r");
-	L1_R = FVector::Dist(CalfR_Pos, ThighR_Pos) * 0.01;
-	L2_R = FVector::Dist(FootR_Pos, CalfR_Pos) * 0.01;
-
-	const FVector ThighL_Pos = CharacterMesh->GetSocketLocation("thigh_l");
-	const FVector CalfL_Pos = CharacterMesh->GetSocketLocation("calf_l");
-	const FVector FootL_Pos = CharacterMesh->GetSocketLocation("foot_l");
-	L1_L = FVector::Dist(CalfL_Pos, ThighL_Pos) * 0.01;
-	L2_L = FVector::Dist(FootL_Pos, CalfL_Pos) * 0.01;
 	
-	UE_LOG(LogTemp, Log, TEXT("%f : %f"), L1_R, L2_R);
+	auto MeasureBoneDistance = [CharacterMesh](const FName& A, const FName& B) -> float
+	{
+		const FVector PosA = CharacterMesh->GetSocketLocation(A);
+		const FVector PosB = CharacterMesh->GetBoneLocation(B);
+		return FVector::Dist(PosA, PosB) * 0.01f; // cm -> m
+	};
+
+	constexpr float DefaultFootTipLength = 0.05f;
 	
+	// Right leg
+	L1_R = MeasureBoneDistance(TEXT("thigh_r"), TEXT("calf_r")); // femur
+	L2_R = MeasureBoneDistance(TEXT("calf_r"), TEXT("foot_r"));  // tibia
+	L3_R = MeasureBoneDistance(TEXT("foot_r"), TEXT("ball_r"));  // foot
+	L4_R = DefaultFootTipLength;
+
+
+	// Left leg
+	L1_L = MeasureBoneDistance(TEXT("thigh_l"), TEXT("calf_l"));
+	L2_L = MeasureBoneDistance(TEXT("calf_l"), TEXT("foot_l"));
+	L3_L = MeasureBoneDistance(TEXT("foot_l"), TEXT("ball_l"));
+	L4_L = DefaultFootTipLength;
+
+	UE_LOG(LogTemp, Log, TEXT("R: L1=%f L2=%f | L: L1=%f L2=%f"), L1_R, L2_R, L1_L, L2_L);
+	UE_LOG(LogTemp, Log, TEXT("R: L3=%f L4=%f | L: L3=%f L4=%f"), L3_R, L4_R, L3_L, L4_L);
+
 	bHasConverged = false;
 }
 
@@ -92,6 +103,34 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 	}
 
 	float CurrentDilation = UGameplayStatics::GetGlobalTimeDilation(GetWorld());
+	
+	auto DetectFootHit = [this](USkeletalMeshComponent* Mesh, const FName& FootBoneName) -> float
+	{
+		if (!Mesh || !GetWorld())
+		{
+			return 0.0f;
+		}
+
+		const FVector Start = Mesh->GetSocketLocation(FootBoneName);
+		const FVector End = Start - FVector(0.0f, 0.0f, 20.0f); // distância de checagem para baixo
+
+		FCollisionQueryParams Params(SCENE_QUERY_STAT(DetectFootHit), false);
+		Params.AddIgnoredActor(GetOwner());
+
+		FHitResult Hit;
+		const bool bHit = GetWorld()->LineTraceSingleByChannel(
+			Hit,
+			Start,
+			End,
+			ECC_Visibility,
+			Params
+		);
+
+		return bHit ? 1.0f : 0.0f;
+	};
+	
+	const float IsHit0 = DetectFootHit(CharacterMesh, TEXT("foot_r"));
+	const float IsHit1 = DetectFootHit(CharacterMesh, TEXT("foot_l"));
 
 	float Velocity01 = FMath::Clamp(Actor->GetVelocity().Size() / 600.f, 0.0f, 1.f);
 	if (Velocity01 <= 0.0f)
@@ -103,12 +142,18 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 	// JSON Offsets: []
 	Push1(L1_R); // mse
 	Push1(L2_R);
+	Push1(L3_R);                     // bone_l3_r
+	Push1(L4_R);                     // bone_l4_r
+	Push1(IsHit0);                   // IsHit0
 	Push1(RigParameters.OffsetFootR);  // offset
 	Push1(RigParameters.SpacingFootR); // spacing
 
 	// JSON Offsets: []
 	Push1(L1_L); // mse
 	Push1(L2_L);
+	Push1(L3_L);                     // bone_l3_l
+	Push1(L4_L);                     // bone_l4_l
+	Push1(IsHit1);                   // IsHit1
 	Push1(RigParameters.OffsetFootL);  // offset
 	Push1(RigParameters.SpacingFootL); // spacing
 
@@ -125,11 +170,11 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 		TArray<FVector> dPacketRecive;
 		dPacketRecive.Reset();
 		UNRNetwork::ReciveDataIKDebug(dPacketRecive);
-		if (dPacketRecive.Num() == 20)
+		if (dPacketRecive.Num() == 20 && !bHasConverged)
 		{
 			//UpdateIK(CharacterMesh, dPacketRecive, DeltaTime);
 		}
-
+		
 		TArray<FVector> PacketRecive;
 		PacketRecive.Reset();
 		UNRNetwork::ReciveDataIK(PacketRecive);
@@ -172,7 +217,7 @@ void UNRComponent::UpdateIK(USkeletalMeshComponent* CharacterMesh, TArray<FVecto
 	
 	// LegIK rotate
 	float TargetCalfPitchR = PacketRecive[9].X * RigScales.MaxCalfPitch; // Calf
-	float TargetCalfPitchL  = PacketRecive[11].X * RigScales.MaxCalfPitch;
+	float TargetCalfPitchL = PacketRecive[11].X * RigScales.MaxCalfPitch;
 	
 	float TargetThighPitchR = PacketRecive[13].X * RigScales.MaxThighPitch; // Thigh
 	float TargetThighPitchL = PacketRecive[15].X * RigScales.MaxThighPitch;
