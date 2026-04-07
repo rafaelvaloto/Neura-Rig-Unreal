@@ -198,7 +198,7 @@ void UNRComponent::UpdateIK(USkeletalMeshComponent* CharacterMesh, TArray<FVecto
 		);
 	FRotator P_rot = FRotator(
 		PacketRecive[17].X * RigScales.MaxPelvisPitch,
-		0.0,
+		PacketRecive[17].Y * RigScales.MaxPelvisYaw,
 		PacketRecive[17].Z * RigScales.MaxPelvisRoll
 		);
 	

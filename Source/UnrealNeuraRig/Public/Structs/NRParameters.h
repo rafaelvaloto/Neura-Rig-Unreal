@@ -24,6 +24,6 @@ struct FNRParameters
 	float Velocity = 500.0f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Parameters", meta = (DisplayName = "Interpolation Speed", ToolTip = "Control the interpolation speed of the foot movement. Higher values will result in snappier movements, while lower values will create smoother transitions."))
-	float S_interpolation = 35.0f;
+	float S_interpolation = 15.0f;
 
 };
