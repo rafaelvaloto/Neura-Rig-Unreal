@@ -103,8 +103,12 @@ public:
 protected:
 	float L1_R; // femur R
 	float L2_R; // tíbia R
+	float L3_R; // foot R
+	float L4_R; // ball R
 	float L1_L;
 	float L2_L;
+	float L3_L;
+	float L4_L;
 	float LastTime;
 	float SpacingR;
 	float SpacingL;
