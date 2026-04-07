@@ -34,18 +34,18 @@ struct FNRRigScales
 
 	// --- FOOT ROTATION (Degrees) ---
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Foot", meta = (DisplayName = "Foot Pitch", Description = "Control the toe/heel rotation."))
-	float MaxFootPitch = 65.0f; // Toe/heel rotation
+	float MaxFootPitch = 90.0f; // Toe/heel rotation
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Foot", meta = (DisplayName = "Foot Roll", Description = "Control the foot roll (inversion/eversion)."))
 	float MaxFootRoll = 5.0f; // Ankle sprain
 
 	// --- BALL ROTATION (Degrees) ---
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Foot", meta = (DisplayName = "Foot Pitch", Description = "Control the toe/heel rotation."))
-	float MaxBallPitch = 90.0f; // Toe/heel rotation
+	float MaxBallPitch = 45.0f; // Toe/heel rotation
 
 	// -- LegIK (Degrees) ---
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Legs", meta = (DisplayName = "Max Thigh Pitch", Description = "Rotação máxima da coxa para frente/trás em graus."))
-	float MaxThighPitch = 165.0f;
+	float MaxThighPitch = 225.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Legs", meta = (DisplayName = "Max Calf Pitch", Description = "Dobra máxima do joelho (panturrilha) para trás em graus."))
 	float MaxCalfPitch = 90.0f;

@@ -12,9 +12,15 @@ Neura RIG is an Unreal Engine plugin designed for **Neural Motion Matching** and
 
 ## 📺 Development Progress
 
-![Neural IK Demo](AtGif.gif)
+![Neural IK Demo 01](FK_Rig01.gif)
 
 *The AI successfully learns to optimize the stride curve, achieving fluid movement and maintaining balance through real-time weight shift predictions.*
+
+---
+
+![Neural IK Demo 02](FK_Rig02.gif)
+
+*Advanced integration of procedural animation with neural motion matching, allowing for dynamic adjustments to diverse terrains and movement styles.*
 
 ---
 
@@ -50,9 +56,3 @@ Make sure your project's `.Build.cs` file includes `"UnrealNeuraRig"` in the `Pu
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 Created by Rafael Valoto.
-
----
-
-![Neural IK Demo](Gif2.gif)
-
-![Neural IK Demo](Gif3.gif)
