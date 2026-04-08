@@ -163,104 +163,81 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 
 	if (Raw.Num() > 0)
 	{
-		TArray<float> Packet;
 		const int32 DataSize = Raw.Num() * sizeof(float);
 		UNRNetwork::SendDataIK(Raw.GetData(), DataSize);
 		
-		TArray<FVector> dPacketRecive;
-		dPacketRecive.Reset();
-		UNRNetwork::ReciveDataIKDebug(dPacketRecive);
-		if (dPacketRecive.Num() == 20 && !bHasConverged)
+		TArray<float> PacketRecive;
+		if (UNRNetwork::ReciveDataIK(PacketRecive))
 		{
-			//UpdateIK(CharacterMesh, dPacketRecive, DeltaTime);
-		}
-		
-		TArray<FVector> PacketRecive;
-		PacketRecive.Reset();
-		UNRNetwork::ReciveDataIK(PacketRecive);
-		if (PacketRecive.Num() == 20)
-		{
-			bHasConverged = true;
-			ConvergenceFrame = frameCounter;
-			UpdateIK(CharacterMesh, PacketRecive, DeltaTime);
+			if (PacketRecive.Num() >= 49) // 7 + 14 + 28
+			{
+				bHasConverged = true;
+				ConvergenceFrame = frameCounter;
+				UpdateIK(CharacterMesh, PacketRecive, DeltaTime);
+			}
 		}
 	}
 }
 
-void UNRComponent::UpdateIK(USkeletalMeshComponent* CharacterMesh, TArray<FVector> PacketRecive, float DeltaTime)
+void UNRComponent::UpdateIK(USkeletalMeshComponent* CharacterMesh, const TArray<float>& PacketRecive, float DeltaTime)
 {
-	FVector FootScale = FVector(RigScales.MaxFootHeightZ,  RigScales.MaxFootStrideX, RigScales.MaxFootWidthY);
-	FVector LocalPosR = FVector(PacketRecive[0].X, PacketRecive[0].Y, PacketRecive[0].Z) * FootScale;
-	FVector LocalPosL = FVector(PacketRecive[2].X, PacketRecive[2].Y,  PacketRecive[2].Z) * FootScale;
-	
+	if (PacketRecive.Num() < 49) return;
+
 	float S_intpl = RigParameters.S_interpolation;
 	float T_intpl = DeltaTime;
+
+	auto GetRot = [](const float* p) {
+		return FQuat(p[0], p[1], p[2], p[3]).Rotator();
+	};
+
+	// 1. Pelvis (Offset 0, Size 7: vec3 + Quat)
+	FVector PelvisPos = FVector(PacketRecive[0], PacketRecive[1], PacketRecive[2]);
+	PelvisPos.X *= RigScales.MaxPelvisSwayY;
+	PelvisPos.Y *= RigScales.MaxPelvisSwayY;
+	PelvisPos.Z *= RigScales.MaxPelvisDropZ;
+	OutPelvis_Pos = FMath::VInterpTo(OutPelvis_Pos, PelvisPos, T_intpl, S_intpl);
 	
-	// Foot position
+	FRotator PelvisRot = GetRot(&PacketRecive[3]);
+	OutPelvis_Rot = FMath::RInterpTo(OutPelvis_Rot, PelvisRot, T_intpl, S_intpl);
+
+	// 2. Foot IK (Offset 7, Size 14: 2x vec3 + Quat)
+	FVector FootScale = FVector(RigScales.MaxFootStrideX, RigScales.MaxFootWidthY, RigScales.MaxFootHeightZ);
+	
+	// Foot R (Offset 7)
+	FVector LocalPosR = FVector(PacketRecive[7], PacketRecive[8], PacketRecive[9]) * FootScale;
+	UE_LOG(LogTemp, Log, TEXT("R: LocalPosR=%f %f %f"), LocalPosR.X, LocalPosR.Y, LocalPosR.Z);
+	
 	OutFootR_Pos = FMath::VInterpTo(OutFootR_Pos, LocalPosR, T_intpl, S_intpl);
+	OutFootR_Rot = FMath::RInterpTo(OutFootR_Rot, GetRot(&PacketRecive[10]), T_intpl, S_intpl);
+
+	// Foot L (Offset 14)
+	FVector LocalPosL = FVector(PacketRecive[14], PacketRecive[15], PacketRecive[16]) * FootScale;
 	OutFootL_Pos = FMath::VInterpTo(OutFootL_Pos, -LocalPosL, T_intpl, S_intpl);
-	
-	// Foot rotate
-	FRotator Fr_rot = FRotator(PacketRecive[1].X * RigScales.MaxFootPitch, 0.0f, 0.0f);
-	FRotator Fl_rot = FRotator(PacketRecive[3].X * RigScales.MaxFootPitch, 0.0f, 0.0f);
-	OutFootR_Rot = FMath::RInterpTo(OutFootR_Rot, Fr_rot, T_intpl, S_intpl);
-	OutFootL_Rot = FMath::RInterpTo(OutFootL_Rot, Fl_rot, T_intpl, S_intpl);
-	
-	// Ball rotate
-	float TargetPitchR = PacketRecive[5].X * RigScales.MaxBallPitch;
-	float TargetPitchL = PacketRecive[7].X * RigScales.MaxBallPitch;
-	FRotator Br_rot = FRotator(TargetPitchR, PacketRecive[5].Y, PacketRecive[5].Z);
-	FRotator Bl_rot = FRotator(TargetPitchL, PacketRecive[7].Y, PacketRecive[7].Z);
-	
-	OutBallR_Rot = FMath::RInterpTo(OutBallR_Rot, Br_rot, T_intpl, S_intpl);
-	OutBallL_Rot = FMath::RInterpTo(OutBallL_Rot, Bl_rot, T_intpl, S_intpl);
-	
-	// LegIK rotate
-	float TargetCalfPitchR = PacketRecive[9].X * RigScales.MaxCalfPitch; // Calf
-	float TargetCalfPitchL = PacketRecive[11].X * RigScales.MaxCalfPitch;
-	
-	float TargetThighPitchR = PacketRecive[13].X * RigScales.MaxThighPitch; // Thigh
-	float TargetThighPitchL = PacketRecive[15].X * RigScales.MaxThighPitch;
-	
-	FRotator TargetThighRotR = FRotator(TargetThighPitchR, PacketRecive[13].Y, PacketRecive[13].Z);
-	FRotator TargetThighRotL = FRotator(TargetThighPitchL, PacketRecive[15].Y, PacketRecive[15].Z);
-	
-	FRotator TargetCalfRotR  = FRotator(TargetCalfPitchR, PacketRecive[9].Y, PacketRecive[9].Z);
-	FRotator TargetCalfRotL  = FRotator(TargetCalfPitchL, PacketRecive[11].Y, PacketRecive[11].Z);
-	
-	OutThighR_Rot = FMath::RInterpTo(OutThighR_Rot, TargetThighRotR, T_intpl, S_intpl);
-	OutThighL_Rot = FMath::RInterpTo(OutThighL_Rot, TargetThighRotL, T_intpl, S_intpl);
-	
-	OutCalfR_Rot  = FMath::RInterpTo(OutCalfR_Rot, TargetCalfRotR, T_intpl, S_intpl);
-	OutCalfL_Rot  = FMath::RInterpTo(OutCalfL_Rot, TargetCalfRotL, T_intpl, S_intpl);
-	// End -- LegIK --
-	
-	// Pelvis
-	FVector P_pos = FVector(
-	0.0,
-		PacketRecive[16].Y * RigScales.MaxPelvisSwayY,
-		PacketRecive[16].Z * RigScales.MaxPelvisDropZ
-		);
-	FRotator P_rot = FRotator(
-		PacketRecive[17].X * RigScales.MaxPelvisPitch,
-		PacketRecive[17].Y * RigScales.MaxPelvisYaw,
-		PacketRecive[17].Z * RigScales.MaxPelvisRoll
-		);
-	
-	
-	OutPelvis_Pos = FMath::VInterpTo(OutPelvis_Pos, P_pos, T_intpl, S_intpl);
-	OutPelvis_Rot = FMath::RInterpTo(OutPelvis_Rot, P_rot, T_intpl, S_intpl);
-	
-	// Spine
-	FRotator S_rot = FRotator(PacketRecive[19].X * RigScales.MaxSpinePitch, PacketRecive[19].Y * RigScales.MaxSpineYaw, PacketRecive[19].Z * RigScales.MaxSpineRoll);
-	OutSpine_Rot = FMath::RInterpTo(OutSpine_Rot, S_rot, T_intpl, S_intpl);
-	
-	FVector WorldR = GetOwner()->GetActorTransform().TransformPosition(FVector(-OutFootR_Pos.Y, OutFootR_Pos.Z, -OutFootR_Pos.X));
-	FVector WorldL = GetOwner()->GetActorTransform().TransformPosition(FVector(OutFootL_Pos.Y, OutFootL_Pos.Z, OutFootL_Pos.X));
-	
-	WorldR.Y = CharacterMesh->GetBoneLocation("foot_r").Y;
-	WorldL.Y = CharacterMesh->GetBoneLocation("foot_l").Y;
-	
-	DrawDebugSphere(GetWorld(), WorldR, 5.0f, 8, FColor::White, false, 0.05f);
-	DrawDebugSphere(GetWorld(), WorldL, 5.0f, 8, FColor::White, false, 0.05f);
+	OutFootL_Rot = FMath::RInterpTo(OutFootL_Rot, GetRot(&PacketRecive[17]), T_intpl, S_intpl);
+	UE_LOG(LogTemp, Log, TEXT("R: LocalPosL=%f %f %f"), LocalPosR.X, LocalPosR.Y, LocalPosR.Z);
+
+	// 3. Legs IK (Offset 21, Size 28: 4x vec3 + Quat)
+	// Leg R Calf (Offset 21 + 0*7)
+	OutCalfR_Rot = FMath::RInterpTo(OutCalfR_Rot, GetRot(&PacketRecive[24]), T_intpl, S_intpl);
+	// Leg L Calf (Offset 21 + 1*7)
+	OutCalfL_Rot = FMath::RInterpTo(OutCalfL_Rot, GetRot(&PacketRecive[31]), T_intpl, S_intpl);
+	// Leg R Thigh (Offset 21 + 2*7)
+	UE_LOG(LogTemp, Warning, TEXT("OutThighR_Rot=%s"), *OutThighR_Rot.ToString());
+	UE_LOG(LogTemp, Warning, TEXT("OutThighL_Rot=%s"), *OutThighL_Rot.ToString());
+	OutThighR_Rot = FMath::RInterpTo(OutThighR_Rot, GetRot(&PacketRecive[38]), T_intpl, S_intpl);
+	// Leg L Thigh (Offset 21 + 3*7)
+	OutThighL_Rot = FMath::RInterpTo(OutThighL_Rot, GetRot(&PacketRecive[45]), T_intpl, S_intpl);
+
+	// Debug visualization (restored and adapted)
+	if (CharacterMesh)
+	{
+		FVector WorldR = GetOwner()->GetActorTransform().TransformPosition(FVector(-OutFootR_Pos.Y, OutFootR_Pos.Z, -OutFootR_Pos.X));
+		FVector WorldL = GetOwner()->GetActorTransform().TransformPosition(FVector(OutFootL_Pos.Y, OutFootL_Pos.Z, OutFootL_Pos.X));
+		
+		WorldR.Y = CharacterMesh->GetBoneLocation("foot_r").Y;
+		WorldL.Y = CharacterMesh->GetBoneLocation("foot_l").Y;
+		
+		DrawDebugSphere(GetWorld(), WorldR, 5.0f, 8, FColor::White, false, 0.05f);
+		DrawDebugSphere(GetWorld(), WorldL, 5.0f, 8, FColor::White, false, 0.05f);
+	}
 }

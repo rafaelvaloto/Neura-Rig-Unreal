@@ -58,7 +58,7 @@ void UNRNetwork::SendDataIK(const float* DataBuffer, int32 Size)
 	Client->Send(Data, "127.0.0.1", 8005);
 }
 
-bool UNRNetwork::ReciveDataIK(TArray<FVector>& OutVectors)
+bool UNRNetwork::ReciveDataIK(TArray<float>& OutFloats)
 {
 	if (!ServerIK)
 		return false;
@@ -66,22 +66,14 @@ bool UNRNetwork::ReciveDataIK(TArray<FVector>& OutVectors)
 	std::vector<float> ReceivedData;
 	if (ServerIK->Receive(ReceivedData))
 	{
-		const float* PredData = ReceivedData.data();
-
-		TArray<FVector> Vs;
-		Vs.Reserve(20);
-		for (int32 j = 0; j < 20; j++)
-		{
-			int32 id = j * 3;
-			Vs.Add(FVector(PredData[id], PredData[id + 1], PredData[id + 2]));
-		}
-		OutVectors = Vs;
+		OutFloats.Empty(ReceivedData.size());
+		OutFloats.Append(ReceivedData.data(), ReceivedData.size());
 		return true;
 	}
 	return false;
 }
 
-bool UNRNetwork::ReciveDataIKDebug(TArray<FVector>& OutVectors)
+bool UNRNetwork::ReciveDataIKDebug(TArray<float>& OutFloats)
 {
 	if (!ServerDebug)
 		return false;
@@ -89,16 +81,8 @@ bool UNRNetwork::ReciveDataIKDebug(TArray<FVector>& OutVectors)
 	std::vector<float> ReceivedData;
 	if (ServerDebug->Receive(ReceivedData))
 	{
-		const float* PredData = ReceivedData.data();
-
-		TArray<FVector> Vs;
-		Vs.Reserve(20);
-		for (int32 j = 0; j < 20; j++)
-		{
-			int32 id = j * 3;
-			Vs.Add(FVector(PredData[id], PredData[id + 1], PredData[id + 2]));
-		}
-		OutVectors = Vs;
+		OutFloats.Empty(ReceivedData.size());
+		OutFloats.Append(ReceivedData.data(), ReceivedData.size());
 		return true;
 	}
 	return false;
