@@ -118,5 +118,5 @@ protected:
 	FVector AxisL;
 	
 private:
-	void UpdateIK(USkeletalMeshComponent* CharacterMesh, TArray<FVector> PacketRecive, float DeltaTime);
+	void UpdateIK(USkeletalMeshComponent* CharacterMesh, const TArray<float>& PacketRecive, float DeltaTime);
 };
