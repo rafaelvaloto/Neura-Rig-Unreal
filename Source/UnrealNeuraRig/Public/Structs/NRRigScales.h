@@ -30,7 +30,7 @@ struct FNRRigScales
 	float MaxFootWidthY = 3.5f; // Side leg opening
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Foot", meta = (DisplayName = "Foot Height Z", Description = "Control the height of the foot when it leaves the ground."))
-	float MaxFootHeightZ = 90.0f;
+	float MaxFootHeightZ = 100.0f;
 
 	// --- FOOT ROTATION (Degrees) ---
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Foot", meta = (DisplayName = "Foot Pitch", Description = "Control the toe/heel rotation."))
@@ -55,20 +55,20 @@ struct FNRRigScales
 	float MaxPelvisForwardX = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Pelvis", meta = (DisplayName = "Pelvis Drop Z", ToolTip = "Control the pelvic drop (squat)."))
-	float MaxPelvisDropZ = 96.0f;
+	float MaxPelvisDropZ = 100.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Pelvis", meta = (DisplayName = "Pelvis Sway Y", ToolTip = "Control the lateral balance (weight transfer)."))
 	float MaxPelvisSwayY = 0.4f;
 
 	// --- PELVIS (Rotation in Degrees) ---
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Pelvis", meta = (DisplayName = "Pelvis Pitch", ToolTip = "Control the forward/backward tilt of the pelvis."))
-	float MaxPelvisPitch = 360.0f;
+	float MaxPelvisPitch = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Pelvis", meta = (DisplayName = "Pelvis Yaw", ToolTip = "Control the left/right twist of the pelvis."))
-	float MaxPelvisYaw = 360.0f;
+	float MaxPelvisYaw = 95.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Pelvis", meta = (DisplayName = "Pelvis Roll", ToolTip = "Control the hip drop/tilt (contra-lateral drop)."))
-	float MaxPelvisRoll = 360.0f; // Queda natural do quadril durante a passada
+	float MaxPelvisRoll = 0.0f; // Queda natural do quadril durante a passada
 
 	// --- SPINE (Rotation in Degrees) ---
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Spine", meta = (DisplayName = "Spine Pitch", ToolTip = "Control the forward tilt of the body."))
