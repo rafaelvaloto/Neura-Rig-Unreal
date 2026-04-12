@@ -42,21 +42,39 @@ public:
 	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Pelvis Rot")
 	FRotator OutPelvis_Rot;
+
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Pelvis Rot")
+	FQuat OutPelvis_Quat;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Spine Rot")
 	FRotator OutSpine_Rot;
+
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Spine Rot")
+	FQuat OutSpine_Quat;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Arm Rot")
 	FRotator OutUpperArmR_Rot;
+
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Arm Rot")
+	FQuat OutUpperArmR_Quat;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Arm Rot")
 	FRotator OutUpperArmL_Rot;
+
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Arm Rot")
+	FQuat OutUpperArmL_Quat;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Arm Rot")
 	FRotator OutClavicleR_Rot;
+
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Arm Rot")
+	FQuat OutClavicleR_Quat;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Arm Rot")
 	FRotator OutClavicleL_Rot;
+
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig Arm Rot")
+	FQuat OutClavicleL_Quat;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig FootR Pos")
 	FVector OutFootR_Pos;
@@ -67,14 +85,26 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig FootR Rot")
 	FRotator OutFootR_Rot;
 
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig FootR Rot")
+	FQuat OutFootR_Quat;
+
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig FootL Rot")
 	FRotator OutFootL_Rot;
+
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig FootL Rot")
+	FQuat OutFootL_Quat;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig BallR Rot")
 	FRotator OutBallR_Rot;
+
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig BallR Rot")
+	FQuat OutBallR_Quat;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig BallL Rot")
 	FRotator OutBallL_Rot;
+
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig BallL Rot")
+	FQuat OutBallL_Quat;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig CalfR Pos")
 	FRotator OutCalfR_Pos;
@@ -84,15 +114,27 @@ public:
 	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig CalfR Rot")
 	FRotator OutCalfR_Rot = FRotator::ZeroRotator;
+
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig CalfR Rot")
+	FQuat OutCalfR_Quat;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig CalfL Rot")
 	FRotator OutCalfL_Rot = FRotator::ZeroRotator;
+
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig CalfL Rot")
+	FQuat OutCalfL_Quat;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig ThighR Rot")
 	FRotator OutThighR_Rot = FRotator::ZeroRotator;
+
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig ThighR Rot")
+	FQuat OutThighR_Quat;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig ThighL Rot")
 	FRotator OutThighL_Rot = FRotator::ZeroRotator;
+
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig ThighL Rot")
+	FQuat OutThighL_Quat;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NeuraRig Scales", meta = (DisplayName = "Rig Scales", Description = "Control the scales of the neural rig."))
 	FNRRigScales RigScales;
@@ -101,6 +143,7 @@ public:
 	FNRParameters RigParameters;
 
 protected:
+	float L_Pelvis; // Pelvis (distância entre coxas)
 	float L1_R; // femur R
 	float L2_R; // tíbia R
 	float L3_R; // foot R
@@ -118,5 +161,5 @@ protected:
 	FVector AxisL;
 	
 private:
-	void UpdateIK(USkeletalMeshComponent* CharacterMesh, TArray<FVector> PacketRecive, float DeltaTime);
+	void UpdateIK(USkeletalMeshComponent* CharacterMesh, const TArray<float>& PacketRecive, float DeltaTime);
 };

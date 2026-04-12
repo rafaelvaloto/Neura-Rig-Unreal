@@ -13,8 +13,8 @@ public:
 	static void CloseSocket();
 
 	static void SendDataIK(const float* DataBuffer, int32 Size);
-	static bool ReciveDataIK(TArray<FVector>& OutVectors);
-	static bool ReciveDataIKDebug(TArray<FVector>& OutVectors);
+	static bool ReciveDataIK(TArray<float>& OutFloats);
+	static bool ReciveDataIKDebug(TArray<float>& OutFloats);
 
 private:
 	static NR::NRNetworkClient* Client;
