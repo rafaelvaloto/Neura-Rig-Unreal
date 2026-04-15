@@ -52,20 +52,21 @@ void UNRComponent::BeginPlay()
 		return;
 	}
 
+	CharacterMesh->SetHiddenInGame(true);
+
 	UNRNetwork::InitSocket();
 
 	SpacingR = RigParameters.SpacingFootR;
 	SpacingL = RigParameters.SpacingFootL;
-	
-	auto MeasureBoneDistance = [CharacterMesh](const FName& A, const FName& B) -> float
-	{
+
+	auto MeasureBoneDistance = [CharacterMesh](const FName& A, const FName& B) -> float {
 		const FVector PosA = CharacterMesh->GetSocketLocation(A);
 		const FVector PosB = CharacterMesh->GetBoneLocation(B);
 		return FVector::Dist(PosA, PosB) * 0.01f; // cm -> m
 	};
 
 	constexpr float DefaultFootTipLength = 0.05f;
-	
+
 	// Measure bones
 	L_Pelvis = MeasureBoneDistance(TEXT("thigh_r"), TEXT("thigh_l"));
 
@@ -74,7 +75,6 @@ void UNRComponent::BeginPlay()
 	L2_R = MeasureBoneDistance(TEXT("calf_r"), TEXT("foot_r"));  // tibia
 	L3_R = MeasureBoneDistance(TEXT("foot_r"), TEXT("ball_r"));  // foot
 	L4_R = DefaultFootTipLength;
-
 
 	// Left leg
 	L1_L = MeasureBoneDistance(TEXT("thigh_l"), TEXT("calf_l"));
@@ -106,7 +106,7 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 	{
 		return;
 	}
-	
+
 	TArray<float> Raw;
 	Raw.Reserve(256);
 	auto Push1 = [&Raw](float A) {
@@ -120,15 +120,21 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 		Raw.Add(Q.W);
 	};
 
+	FVector PelvisCenter = CharacterMesh->GetBoneTransform(TEXT("pelvis"), RTS_Component).GetLocation();
+	FQuat PelvisRotator = CharacterMesh->GetBoneTransform(TEXT("pelvis"), RTS_Component).InverseTransformRotation(FQuat::Identity);
+	FVector RightThighBaseOffset = PelvisCenter + (PelvisRotator.GetRightVector() * (L_Pelvis * 50.0f));
+	FVector LeftThighBaseOffset = PelvisCenter - (PelvisRotator.GetRightVector() * (L_Pelvis * 50.0f));
+	RigParameters.SpacingFootR = RightThighBaseOffset.X * 0.01;
+	RigParameters.SpacingFootL = LeftThighBaseOffset.X * 0.01;
+
 	if (ConvergenceFrame == 0)
 	{
 		frameCounter++;
 	}
 
 	float CurrentDilation = UGameplayStatics::GetGlobalTimeDilation(GetWorld());
-	
-	auto DetectFootHit = [this](USkeletalMeshComponent* Mesh, const FName& FootBoneName) -> float
-	{
+
+	auto DetectFootHit = [this](USkeletalMeshComponent* Mesh, const FName& FootBoneName) -> float {
 		if (!Mesh || !GetWorld())
 		{
 			return 0.0f;
@@ -147,11 +153,11 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 			End,
 			ECC_Visibility,
 			Params
-		);
+			);
 
 		return bHit ? 1.0f : 0.0f;
 	};
-	
+
 	const float IsHit0 = DetectFootHit(CharacterMesh, TEXT("foot_r"));
 	const float IsHit1 = DetectFootHit(CharacterMesh, TEXT("foot_l"));
 
@@ -163,12 +169,11 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 	Push1(Velocity01);
 
 	// JSON Offsets: []
-	
-	Push1(L1_R); // femur
-	Push1(L2_R); // tibia
-	Push1(L3_R); // foot
-	Push1(L4_R); // ball
-	Push1(IsHit0);                   // IsHit0
+	Push1(L1_R);                       // femur
+	Push1(L2_R);                       // tibia
+	Push1(L3_R);                       // foot
+	Push1(L4_R);                       // ball
+	Push1(IsHit0);                     // IsHit0
 	Push1(RigParameters.OffsetFootR);  // offset
 	Push1(RigParameters.SpacingFootR); // spacing
 
@@ -177,24 +182,26 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 	Push1(L2_L);
 	Push1(L3_L);
 	Push1(L4_L);
-	Push1(IsHit1);                   // IsHit1
+	Push1(IsHit1);                     // IsHit1
 	Push1(RigParameters.OffsetFootL);  // offset
 	Push1(RigParameters.SpacingFootL); // spacing
 	Push1(L_Pelvis);
 
 	Push1(DeltaTime);
 	Push1(CurrentDilation);
+	Push1(0.08f);
+	Push1(-0.08f);
 	Push1(0.0); // reserved
 
 	if (Raw.Num() > 0)
 	{
 		const int32 DataSize = Raw.Num() * sizeof(float);
 		UNRNetwork::SendDataIK(Raw.GetData(), DataSize);
-		
+
 		TArray<float> PacketRecive;
 		if (UNRNetwork::ReciveDataIK(PacketRecive))
 		{
-			if (PacketRecive.Num() >= 49) 
+			if (PacketRecive.Num() >= 49)
 			{
 				bHasConverged = true;
 				ConvergenceFrame = frameCounter;
@@ -206,7 +213,8 @@ void UNRComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 
 void UNRComponent::UpdateIK(USkeletalMeshComponent* CharacterMesh, const TArray<float>& PacketRecive, float DeltaTime)
 {
-	if (PacketRecive.Num() < 49) return;
+	if (PacketRecive.Num() < 49)
+		return;
 
 	float S_intpl = RigParameters.S_interpolation;
 	float T_intpl = DeltaTime;
@@ -220,7 +228,8 @@ void UNRComponent::UpdateIK(USkeletalMeshComponent* CharacterMesh, const TArray<
 	};
 
 	auto InterpQuat = [](FQuat Current, FQuat Target, float DeltaTime, float InterpSpeed) {
-		if (InterpSpeed <= 0.f) return Target;
+		if (InterpSpeed <= 0.f)
+			return Target;
 		return FQuat::Slerp(Current, Target, FMath::Clamp(DeltaTime * InterpSpeed, 0.f, 1.f));
 	};
 
@@ -229,91 +238,133 @@ void UNRComponent::UpdateIK(USkeletalMeshComponent* CharacterMesh, const TArray<
 	PelvisPos.X *= RigScales.MaxPelvisForwardX;
 	PelvisPos.Y *= RigScales.MaxPelvisSwayY;
 	PelvisPos.Z *= RigScales.MaxPelvisDropZ;
-	
 	OutPelvis_Pos = FMath::VInterpTo(OutPelvis_Pos, PelvisPos, T_intpl, S_intpl);
-	
+
 	FQuat PelvisQuat = GetQuat(&PacketRecive[3]);
 	OutPelvis_Quat = InterpQuat(OutPelvis_Quat, PelvisQuat, T_intpl, S_intpl);
 	OutPelvis_Rot = OutPelvis_Quat.Rotator();
-	
-	// Foot IK (Offset 7, Size 14: 2x vec3 + Quat)
-	FVector FootScale = FVector(RigScales.MaxFootHeightZ, RigScales.MaxFootStrideX, RigScales.MaxFootWidthY);
-	
-	// Foot R (Offset 7)
-	FVector LocalPosR = FVector(PacketRecive[7], PacketRecive[8], PacketRecive[9]) * FootScale;
+
+	// Leg R (Offset 7, Size 21: 3x vec3+Quat)
+	// Leg R Thigh (Offset 7 + 0*7)
+	OutThighR_Pos = FVector(PacketRecive[7], PacketRecive[8], PacketRecive[9]) * 100.f;
+	OutThighR_Quat = InterpQuat(OutThighR_Quat, GetQuat(&PacketRecive[10]), T_intpl, S_intpl);
+	OutThighR_Rot = OutThighR_Quat.Rotator();
+
+	// Leg R Calf (Offset 7 + 1*7)
+	OutCalfR_Pos = FVector(PacketRecive[14], PacketRecive[15], PacketRecive[16]) * 100.f;
+	OutCalfR_Quat = InterpQuat(OutCalfR_Quat, GetQuat(&PacketRecive[17]), T_intpl, S_intpl);
+	OutCalfR_Rot = OutCalfR_Quat.Rotator();
+
+	// Leg R Foot (Offset 7 + 2*7)
+	FVector LocalPosR = FVector(PacketRecive[21], PacketRecive[22], PacketRecive[23]) * 100.f;
 	OutFootR_Pos = FMath::VInterpTo(OutFootR_Pos, LocalPosR, T_intpl, S_intpl);
-	OutFootR_Quat = InterpQuat(OutFootR_Quat, GetQuat(&PacketRecive[10]), T_intpl, S_intpl);
+	OutFootR_Quat = InterpQuat(OutFootR_Quat, GetQuat(&PacketRecive[24]), T_intpl, S_intpl);
 	OutFootR_Rot = OutFootR_Quat.Rotator();
 
-	// Foot L (Offset 14)
-	FVector LocalPosL = FVector(PacketRecive[14], PacketRecive[15], PacketRecive[16]) * FootScale;
-	OutFootL_Pos = FMath::VInterpTo(OutFootL_Pos, LocalPosL, T_intpl, S_intpl);
-	OutFootL_Quat = InterpQuat(OutFootL_Quat, GetQuat(&PacketRecive[17]), T_intpl, S_intpl);
-	OutFootL_Rot = OutFootL_Quat.Rotator();
-	
-	// Leg R Calf (Offset 21 + 0*7)
-	OutCalfR_Quat = InterpQuat(OutCalfR_Quat, GetQuat(&PacketRecive[24]), T_intpl, S_intpl);
-	OutCalfR_Rot = OutCalfR_Quat.Rotator();
-	// Leg L Calf (Offset 21 + 1*7)
-	OutCalfL_Quat = InterpQuat(OutCalfL_Quat, GetQuat(&PacketRecive[31]), T_intpl, S_intpl);
-	OutCalfL_Rot = OutCalfL_Quat.Rotator();
-	
-	// Leg R Thigh (Offset 21 + 2*7)
-	OutThighR_Quat = GetQuat(&PacketRecive[38]); 
-	OutThighR_Rot = OutThighR_Quat.Rotator();
-	// Leg L Thigh (Offset 21 + 3*7)
-	OutThighL_Quat = GetQuat(&PacketRecive[45]);
+	// Leg L (Offset 28, Size 21: 3x vec3+Quat)
+	// Leg L Thigh (Offset 28 + 0*7)
+	OutThighL_Pos = FVector(PacketRecive[28], PacketRecive[29], PacketRecive[30]) * 100.f;
+	OutThighL_Quat = InterpQuat(OutThighL_Quat, GetQuat(&PacketRecive[31]), T_intpl, S_intpl);
 	OutThighL_Rot = OutThighL_Quat.Rotator();
-	
-	// UE_LOG(LogTemp, Warning, TEXT("OutPelvis_Rot: %s"), *OutPelvis_Rot.ToString());
-	// UE_LOG(LogTemp, Warning, TEXT("OutFootL_Rot: %s"), *OutFootL_Rot.ToString());
-	// UE_LOG(LogTemp, Warning, TEXT("OutFootR_Rot: %s"), *OutFootR_Rot.ToString());
-	// UE_LOG(LogTemp, Warning, TEXT("OutThighR_Rot: %s"), *OutThighR_Rot.ToString());
-	// UE_LOG(LogTemp, Warning, TEXT("OutThighL_Rot: %s"), *OutThighL_Rot.ToString());
-	// UE_LOG(LogTemp, Warning, TEXT("OutCalfR_Quat: %s"), *OutCalfR_Quat.ToString());
-	// UE_LOG(LogTemp, Warning, TEXT("OutCalfL_Rot: %s"), *OutCalfL_Rot.ToString());
+
+	// Leg L Calf (Offset 28 + 1*7)
+	OutCalfL_Pos = FVector(PacketRecive[35], PacketRecive[36], PacketRecive[37]) * 100.f;
+	OutCalfL_Quat = InterpQuat(OutCalfL_Quat, GetQuat(&PacketRecive[38]), T_intpl, S_intpl);
+	OutCalfL_Rot = OutCalfL_Quat.Rotator();
+
+	// Leg L Foot (Offset 28 + 2*7)
+	FVector LocalPosL = FVector(PacketRecive[42], PacketRecive[43], PacketRecive[44]) * 100.f;
+	OutFootL_Pos = FMath::VInterpTo(OutFootL_Pos, LocalPosL, T_intpl, S_intpl);
+	OutFootL_Quat = InterpQuat(OutFootL_Quat, GetQuat(&PacketRecive[45]), T_intpl, S_intpl);
+	OutFootL_Rot = OutFootL_Quat.Rotator();
 
 	if (CharacterMesh && GetWorld())
 	{
-		const FTransform ActorTrans = GetOwner()->GetActorTransform();
-		
-		auto DrawBone = [this, &ActorTrans](FVector Direction, FVector Start, float Length, FColor Color) -> FVector {
-			FVector End = Start + (Direction * Length * 100.0f); // m -> cm
-			DrawDebugLine(GetWorld(), ActorTrans.TransformPosition(Start), ActorTrans.TransformPosition(End), Color, false, 0.05f, 0, 2.0f);
-			return End;
+		#include "DrawDebugHelpers.h"
+
+		FTransform ZOffset = CharacterMesh->GetBoneTransform(TEXT("pelvis"), RTS_Component);
+		FVector PelvisWorld = OutPelvis_Pos + ZOffset.GetLocation();
+		PelvisWorld.Z += 200.f;
+		const FQuat PelvisRotWorld = OutPelvis_Quat;
+
+		auto ToWorldPos = [&](const FVector& RelativePos, const FVector& ParentWorldPos, const FQuat& ParentWorldRot) -> FVector {
+			return ParentWorldPos + ParentWorldRot.RotateVector(RelativePos);
 		};
-		FVector PelvisCenter = OutPelvis_Pos;
-		PelvisCenter.Z = 0.0f;
-		PelvisCenter.X = 0.0f;
-		FVector RightThighBase = PelvisCenter + (OutPelvis_Quat.GetRightVector() * (L_Pelvis * 50.0f)); 
-		FVector LeftThighBase = PelvisCenter - (OutPelvis_Quat.GetRightVector() * (L_Pelvis * 50.0f));
-		DrawDebugLine(GetWorld(), ActorTrans.TransformPosition(LeftThighBase), ActorTrans.TransformPosition(RightThighBase), FColor::White, false, 0.05f, 0, 3.0f);
 
-		FVector RDirectionT = OutThighR_Quat.GetAxisZ();
-		FVector RDirectionC = -OutCalfR_Quat.GetAxisZ();
-		FVector RDirectionF = -OutFootR_Quat.GetForwardVector();
+		auto ToWorldRot = [&](const FQuat& ParentWorldRot, const FQuat& LocalRot) -> FQuat {
+			return ParentWorldRot * LocalRot;
+		};
+
+		const FVector Pelvis = PelvisWorld;
+		const FRotator PelvisDrawRot = PelvisRotWorld.Rotator();
+
+		// Use bone lengths instead of AI positions (L1, L2, L3 are in meters, convert to cm)
+		// Assume bone axis is X (common in UE Mannequin)
+		const FVector OffsetThighR = FVector(0.f, L_Pelvis * 50.f, 0.f); // Half pelvis distance to the right
+		const FVector OffsetThighL = FVector(0.f, -L_Pelvis * 50.f, 0.f);
 		
-		FVector KneeR = DrawBone(RDirectionT, RightThighBase, L1_R, FColor::Blue);
-		FVector AnkleR = DrawBone(RDirectionC, KneeR, L2_R, FColor::Blue);
-		FVector FootR = DrawBone(RDirectionF, AnkleR, L3_R, FColor::Blue);
+		UE_LOG(LogTemp, Warning, TEXT("Pelvis: %s"), *Pelvis.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("OutThighR_Rot: %s"), *OutThighR_Rot.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("OutThighR_Pos: %s"), *OutThighR_Pos.ToString());
+		
+		UE_LOG(LogTemp, Warning, TEXT("OutThighL_Pos: %s"), *OutThighL_Pos.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("OutThighL_Rot: %s"), *OutThighL_Rot.ToString());
+		
 
-		FVector LDirectionT = OutThighL_Quat.GetAxisZ();
-		FVector LDirectionC = OutCalfL_Quat.GetAxisZ();
-		FVector LDirectionF = OutFootL_Quat.GetForwardVector();
-		FVector KneeL = DrawBone(LDirectionT, LeftThighBase, L1_L, FColor::Red);
-		FVector AnkleL = DrawBone(LDirectionC, KneeL, L2_L, FColor::Red);
-		FVector FootL = DrawBone(LDirectionF, AnkleL, L3_L, FColor::Red);
+		const FVector ThighRWorld = ToWorldPos(OffsetThighR, Pelvis, PelvisRotWorld);
+		const FQuat ThighRRotW = ToWorldRot(PelvisRotWorld, OutThighR_Quat);
 
-		DrawDebugSphere(GetWorld(), ActorTrans.TransformPosition(RightThighBase), 3.0f, 8, FColor::White, false, 0.05f);
-		DrawDebugSphere(GetWorld(), ActorTrans.TransformPosition(LeftThighBase), 3.0f, 8, FColor::White, false, 0.05f);
-		DrawDebugSphere(GetWorld(), ActorTrans.TransformPosition(KneeR), 3.0f, 8, FColor::White, false, 0.05f);
-		DrawDebugSphere(GetWorld(), ActorTrans.TransformPosition(KneeL), 3.0f, 8, FColor::White, false, 0.05f);
-		DrawDebugSphere(GetWorld(), ActorTrans.TransformPosition(AnkleR), 3.0f, 8, FColor::White, false, 0.05f);
-		DrawDebugSphere(GetWorld(), ActorTrans.TransformPosition(AnkleL), 3.0f, 8, FColor::White, false, 0.05f);
-		DrawDebugSphere(GetWorld(), ActorTrans.TransformPosition(FootR), 3.0f, 8, FColor::White, false, 0.05f);
-		DrawDebugSphere(GetWorld(), ActorTrans.TransformPosition(FootL), 3.0f, 8, FColor::White, false, 0.05f);
+		const FVector CalfRWorld = ToWorldPos(FVector(L1_R * 100.f, 0.f, 0.f), ThighRWorld, ThighRRotW);
+		const FQuat CalfRRotW = ToWorldRot(ThighRRotW, OutCalfR_Quat);
 
-		DrawDebugSphere(GetWorld(), ActorTrans.TransformPosition(FVector(OutFootR_Pos.Y, OutFootR_Pos.Z, OutFootR_Pos.X)), 4.0f, 8, FColor::Magenta, false, 0.05f);
-		DrawDebugSphere(GetWorld(), ActorTrans.TransformPosition(FVector(OutFootL_Pos.Y, OutFootL_Pos.Z, OutFootL_Pos.X)), 4.0f, 8, FColor::White, false, 0.05f);
+		const FVector FootRWorld = ToWorldPos(FVector(L2_R * 100.f, 0.f, 0.f), CalfRWorld, CalfRRotW);
+		const FQuat FootRRotW = ToWorldRot(CalfRRotW, OutFootR_Quat);
+
+		const FVector ThighLWorld = ToWorldPos(OffsetThighL, Pelvis, PelvisRotWorld);
+		const FQuat ThighLRotW = ToWorldRot(PelvisRotWorld, OutThighL_Quat);
+
+		const FVector CalfLWorld = ToWorldPos(FVector(L1_L * 100.f, 0.f, 0.f), ThighLWorld, ThighLRotW);
+		const FQuat CalfLRotW = ToWorldRot(ThighLRotW, OutCalfL_Quat);
+
+		const FVector FootLWorld = ToWorldPos(FVector(L2_L * 100.f, 0.f, 0.f), CalfLWorld, CalfLRotW);
+		const FQuat FootLRotW = ToWorldRot(CalfLRotW, OutFootL_Quat);
+
+		const float AxisLen = 12.f;
+		
+		UE_LOG(LogTemp, Log, TEXT("FootRWorld: %s"), *FootRWorld.ToString());
+		UE_LOG(LogTemp, Log, TEXT("FootL: %s"), *FootLWorld.ToString());
+		
+		FVector Fw_r = Pelvis + FVector(OutFootR_Pos.Y, OutFootR_Pos.Z, OutFootR_Pos.X);
+		FVector Fw_l = Pelvis + FVector(OutFootL_Pos.Y, OutFootL_Pos.Z, OutFootL_Pos.X);
+		
+		DrawDebugSphere(GetWorld(), Fw_r,  5.0, 12, FColor::Black, false, 0.2f);
+		DrawDebugSphere(GetWorld(), Fw_l,  5.0, 12, FColor::Black, false, 0.2f);
+
+		DrawDebugSphere(GetWorld(), Pelvis, 3.f, 8, FColor::Yellow, false, 0.f, 0, 1.f);
+
+		DrawDebugSphere(GetWorld(), ThighRWorld, 3.f, 8, FColor::White, false, 0.f, 0, 1.f);
+		DrawDebugSphere(GetWorld(), CalfRWorld, 3.f, 8, FColor::White, false, 0.f, 0, 1.f);
+		DrawDebugSphere(GetWorld(), Fw_r, 3.f, 8, FColor::White, false, 0.f, 0, 1.f);
+
+		DrawDebugSphere(GetWorld(), ThighLWorld, 3.f, 8, FColor::White, false, 0.f, 0, 1.f);
+		DrawDebugSphere(GetWorld(), CalfLWorld, 3.f, 8, FColor::White, false, 0.f, 0, 1.f);
+		DrawDebugSphere(GetWorld(), Fw_l, 3.f, 8, FColor::White, false, 0.f, 0, 1.f);
+
+		DrawDebugLine(GetWorld(), Pelvis, ThighRWorld, FColor::Red, false, 0.f, 0, 2.f);
+		DrawDebugLine(GetWorld(), ThighRWorld, CalfRWorld, FColor::Red, false, 0.f, 0, 2.f);
+		DrawDebugLine(GetWorld(), CalfRWorld, Fw_r, FColor::Blue, false, 0.f, 0, 2.f);
+
+		DrawDebugLine(GetWorld(), Pelvis, ThighLWorld, FColor::Blue, false, 0.f, 0, 2.f);
+		DrawDebugLine(GetWorld(), ThighLWorld, CalfLWorld, FColor::Blue, false, 0.f, 0, 2.f);
+		DrawDebugLine(GetWorld(), CalfLWorld, Fw_l, FColor::White, false, 0.f, 0, 2.f);
+
+		DrawDebugCoordinateSystem(GetWorld(), Pelvis, PelvisDrawRot, AxisLen, false, 0.f, 0, 1.f);
+		DrawDebugCoordinateSystem(GetWorld(), ThighRWorld, ThighRRotW.Rotator(), AxisLen, false, 0.f, 0, 1.f);
+		DrawDebugCoordinateSystem(GetWorld(), CalfRWorld, CalfRRotW.Rotator(), AxisLen, false, 0.f, 0, 1.f);
+		DrawDebugCoordinateSystem(GetWorld(), Fw_r, FootRRotW.Rotator(), AxisLen, false, 0.f, 0, 1.f);
+
+		DrawDebugCoordinateSystem(GetWorld(), ThighLWorld, ThighLRotW.Rotator(), AxisLen, false, 0.f, 0, 1.f);
+		DrawDebugCoordinateSystem(GetWorld(), CalfLWorld, CalfLRotW.Rotator(), AxisLen, false, 0.f, 0, 1.f);
+		DrawDebugCoordinateSystem(GetWorld(), Fw_l, FootLRotW.Rotator(), AxisLen, false, 0.f, 0, 1.f);
 	}
 }

@@ -107,10 +107,10 @@ public:
 	FQuat OutBallL_Quat;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig CalfR Pos")
-	FRotator OutCalfR_Pos;
+	FVector OutCalfR_Pos;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig CalfL Pos")
-	FRotator OutCalfL_Pos;
+	FVector OutCalfL_Pos;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig CalfR Rot")
 	FRotator OutCalfR_Rot = FRotator::ZeroRotator;
@@ -135,6 +135,12 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig ThighL Rot")
 	FQuat OutThighL_Quat;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig ThighL Rot")
+	FVector OutThighL_Pos;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "NeuraRig ThighL Rot")
+	FVector OutThighR_Pos;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NeuraRig Scales", meta = (DisplayName = "Rig Scales", Description = "Control the scales of the neural rig."))
 	FNRRigScales RigScales;

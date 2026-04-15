@@ -27,7 +27,7 @@ struct FNRRigScales
 	float MaxFootStrideX = 65.0f; // Maximum stride forward/backward
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Foot", meta = (DisplayName = "Foot Width Y", Description = "Control the side leg opening."))
-	float MaxFootWidthY = 25.0f; // Side leg opening
+	float MaxFootWidthY = 100.0f; // Side leg opening
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Foot", meta = (DisplayName = "Foot Height Z", Description = "Control the height of the foot when it leaves the ground."))
 	float MaxFootHeightZ = 90.0f;

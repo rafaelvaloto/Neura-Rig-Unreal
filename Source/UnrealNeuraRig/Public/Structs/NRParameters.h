@@ -9,10 +9,10 @@ struct FNRParameters
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Parameters", meta = (DisplayName = "Spacing Foot R", Description = "leg spacing control."))
-	float SpacingFootR = 0.05f;
+	float SpacingFootR = 0.13512f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Parameters", meta = (DisplayName = "Spacing Foot L", Description = "leg spacing control."))
-	float SpacingFootL = 0.20f;
+	float SpacingFootL = -0.08753f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neural Rig|Parameters", meta = (DisplayName = "Offset Foot L", Description = "Control the foot offset to the center of the body.", min = 0.0f, max = 1.0f, UIMin = 0.0f, UIMax = 1.0f))
 	float OffsetFootL = 0.5f;
