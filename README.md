@@ -1,4 +1,4 @@
-﻿# Neura RIG Plugin for Unreal Engine
+﻿# Neura RIG Plugin for Unreal Engine | under development
 
 Neura RIG is an Unreal Engine plugin designed for **Neural Motion Matching** and **procedural animation**. It provides efficient tools for character rigging and animation control.
 
