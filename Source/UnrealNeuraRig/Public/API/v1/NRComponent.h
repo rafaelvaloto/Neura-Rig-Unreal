@@ -162,6 +162,7 @@ protected:
 	float SpacingR;
 	float SpacingL;
 	int32 frameCounter;
+	FTransform PelvisW_Transform;
 	
 	FVector AxisR;
 	FVector AxisL;
