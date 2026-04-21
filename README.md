@@ -8,6 +8,7 @@ The AI model currently handles the end-to-end generation of motion paths and loc
 
 *The system demonstrates real-time inference, calculating precise local positions and rotations for the entire lower body hierarchy, ensuring fluid transitions and grounded foot placement.*
 
+![Gif](NeuraRigSK_01.gif)
 ---
 
 ## 🧠 Neural Training Core
