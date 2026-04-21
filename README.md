@@ -1,58 +1,64 @@
-﻿# Neura RIG Plugin for Unreal Engine | under development
+﻿# NeuraRIG Plugin for Unreal Engine | Development Phase
 
-Neura RIG is an Unreal Engine plugin designed for **Neural Motion Matching** and **procedural animation**. It provides efficient tools for character rigging and animation control.
+NeuraRIG is an advanced Unreal Engine plugin designed for **Neural Motion Matching** and **procedural animation**. Leveraging machine learning, it provides high-fidelity character rigging and real-time motion synthesis.
 
-## Installation
+## 🚀 Current Progress
 
-1. Copy the `UnrealNeuraRig` folder to your project's `Plugins` directory.
+The AI model currently handles the end-to-end generation of motion paths and local transformations from the **pelvis down to the feet**. It successfully predicts optimal trajectories and joint orientations to ensure natural movement and physiological constraints.
+
+![NeuraRig Demo](NeuraRigSK_01.gif)
+
+*The system demonstrates real-time inference, calculating precise local positions and rotations for the entire lower body hierarchy, ensuring fluid transitions and grounded foot placement.*
+
+---
+
+## 🧠 Neural Training Core
+
+This plugin works in tandem with the **[NeuraRig](https://github.com/rafaelvaloto/NeuraRig)** project, which contains the deep learning framework, dataset processing, and model training scripts used to generate the weights utilized by this runtime integration.
+
+---
+
+## 🛠 Installation
+
+1. Clone or copy the `UnrealNeuraRig` folder into your Unreal Engine project's `Plugins` directory.
 2. Restart the Unreal Engine editor.
-3. Enable the plugin in the **Plugins** window (Edit > Plugins).
+3. Enable the plugin via **Edit > Plugins**.
 
----
+## 📖 Usage
 
-## 📺 Development Progress
+Integrate the `UNRComponent` into your character to enable neural-driven IK and motion matching.
 
-![Neural IK Demo 01](FK_Rig01.gif)
+### C++ Integration
 
-*The AI successfully learns to optimize the stride curve, achieving fluid movement and maintaining balance through real-time weight shift predictions.*
-
----
-
-![Neural IK Demo 02](FK_Rig02.gif)
-
-*Advanced integration of procedural animation with neural motion matching, allowing for dynamic adjustments to diverse terrains and movement styles.*
-
----
-
-## Usage
-
-To use the Neura RIG component in your C++ classes, include the relevant headers and initialize the `UNRComponent`.
-
-### C++ Example
-
-Add the following to your Character or Actor class:
+Add the component to your Character class:
 
 ```cpp
 #include "API/v1/NRComponent.h"
 
-// In your class constructor or where you initialize components:
+// Inside your constructor:
 NeuraRig = CreateDefaultSubobject<UNRComponent>(TEXT("UNRComponent"));
-if (NeuraRig->IsActive() == false)
+
+// Ensure it is active:
+if (NeuraRig && !NeuraRig->IsActive())
 {
     NeuraRig->Activate();
 }
 ```
 
-Make sure your project's `.Build.cs` file includes `"UnrealNeuraRig"` in the `PublicDependencyModuleNames` or `PrivateDependencyModuleNames`.
+Update your `YourProject.Build.cs` to include the module:
+```csharp
+PublicDependencyModuleNames.AddRange(new string[] { "UnrealNeuraRig" });
+```
 
-## Features
+## ✨ Key Features
 
-- Neural Motion Matching support.
-- Procedural animation components.
-- Easy-to-use API for real-time rigging adjustments.
+- **Neural Motion Matching:** Real-time motion synthesis based on learned datasets.
+- **Procedural IK:** Machine learning-enhanced inverse kinematics for realistic foot placement.
+- **Low Latency Inference:** Optimized for real-time gameplay performance.
+- **Bi-directional Network Sync:** Seamless communication between Unreal Engine and the neural inference server.
 
-## License
+## ⚖️ License
 
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
-Created by Rafael Valoto.
+Developed by **Rafael Valoto**.
