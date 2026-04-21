@@ -6,8 +6,6 @@ NeuraRIG is an advanced Unreal Engine plugin designed for **Neural Motion Matchi
 
 The AI model currently handles the end-to-end generation of motion paths and local transformations from the **pelvis down to the feet**. It successfully predicts optimal trajectories and joint orientations to ensure natural movement and physiological constraints.
 
-![NeuraRig Demo](NeuraRigSK_01.gif)
-
 *The system demonstrates real-time inference, calculating precise local positions and rotations for the entire lower body hierarchy, ensuring fluid transitions and grounded foot placement.*
 
 ---
